@@ -1,14 +1,13 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import plotly.express as px
-import plotly.graph_objects as go
+import itertools
+import math
 from datetime import datetime
 
 # ============================================================
-# PORT PRIORITY SYSTEM
-# Decision-support system for vessel prioritization
-# during severe weather and limited port capacity.
+# PORT PRIORITY SYSTEM 2.0
+# Academic decision-support simulation
 # ============================================================
 
 st.set_page_config(
@@ -19,91 +18,85 @@ st.set_page_config(
 )
 
 # ============================================================
-# CUSTOM CSS
+# STYLE
 # ============================================================
 
 st.markdown("""
 <style>
-    .main {
-        background-color: #f7f9fc;
-    }
+.main {
+    background: #f7f9fc;
+}
 
-    .block-container {
-        padding-top: 2rem;
-        padding-bottom: 3rem;
-    }
+.block-container {
+    max-width: 1400px;
+    padding-top: 2rem;
+}
 
-    .hero {
-        padding: 1.8rem 2rem;
-        border-radius: 18px;
-        background: linear-gradient(135deg, #0b1f33 0%, #173b5f 100%);
-        color: white;
-        margin-bottom: 1.5rem;
-    }
+.hero {
+    background: linear-gradient(135deg, #081c2e, #17466b);
+    color: white;
+    padding: 2rem 2.3rem;
+    border-radius: 20px;
+    margin-bottom: 1.5rem;
+}
 
-    .hero h1 {
-        font-size: 2.4rem;
-        margin-bottom: 0.3rem;
-    }
+.hero h1 {
+    font-size: 2.5rem;
+    margin: 0;
+}
 
-    .hero p {
-        font-size: 1.05rem;
-        opacity: 0.85;
-    }
+.hero p {
+    margin-top: 0.5rem;
+    opacity: 0.85;
+    font-size: 1.05rem;
+}
 
-    .metric-card {
-        background: white;
-        padding: 1rem 1.2rem;
-        border-radius: 14px;
-        border: 1px solid #e3e8ef;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    }
+.card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 15px;
+    padding: 1.2rem;
+    margin-bottom: 1rem;
+}
 
-    .risk-high {
-        background: #fff0f0;
-        border-left: 5px solid #d64545;
-        padding: 1rem;
-        border-radius: 10px;
-    }
+.good {
+    background: #edf9f1;
+    border-left: 5px solid #2e9d62;
+    padding: 1rem;
+    border-radius: 10px;
+}
 
-    .risk-medium {
-        background: #fff8e6;
-        border-left: 5px solid #e6a700;
-        padding: 1rem;
-        border-radius: 10px;
-    }
+.warning {
+    background: #fff8e7;
+    border-left: 5px solid #e2a51c;
+    padding: 1rem;
+    border-radius: 10px;
+}
 
-    .risk-low {
-        background: #eef9f2;
-        border-left: 5px solid #35a66f;
-        padding: 1rem;
-        border-radius: 10px;
-    }
+.danger {
+    background: #fff0f0;
+    border-left: 5px solid #d64545;
+    padding: 1rem;
+    border-radius: 10px;
+}
 
-    .decision-box {
-        background: #ffffff;
-        border: 1px solid #dce3ec;
-        border-radius: 14px;
-        padding: 1.2rem;
-        margin-bottom: 1rem;
-    }
+.small {
+    color: #667085;
+    font-size: 0.88rem;
+}
 
-    .small-muted {
-        color: #667085;
-        font-size: 0.9rem;
-    }
+.sequence {
+    background: white;
+    border: 1px solid #dbe3ec;
+    border-radius: 12px;
+    padding: 0.9rem 1.1rem;
+    margin: 0.5rem 0;
+}
 
-    .priority-number {
-        font-size: 2rem;
-        font-weight: 700;
-    }
-
-    div[data-testid="stMetric"] {
-        background-color: white;
-        padding: 12px;
-        border-radius: 12px;
-        border: 1px solid #e3e8ef;
-    }
+.big-number {
+    font-size: 2rem;
+    font-weight: 700;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -115,11 +108,8 @@ st.markdown("""
 if "decision_log" not in st.session_state:
     st.session_state.decision_log = []
 
-if "simulation_ran" not in st.session_state:
-    st.session_state.simulation_ran = False
-
-if "results" not in st.session_state:
-    st.session_state.results = None
+if "optimization_result" not in st.session_state:
+    st.session_state.optimization_result = None
 
 
 # ============================================================
@@ -130,211 +120,146 @@ st.markdown("""
 <div class="hero">
     <h1>⚓ PORT PRIORITY SYSTEM</h1>
     <p>
-        Decision-support system for vessel prioritization
-        during severe weather and limited port capacity.
+        Decision-support system for vessel sequencing,
+        resource allocation and risk management during severe weather.
     </p>
 </div>
 """, unsafe_allow_html=True)
 
 st.caption(
-    "A simulation-based model exploring how ports can allocate scarce resources "
-    "when safety, passengers, critical cargo, economic impact and weather conditions conflict."
+    "Academic simulation — designed to explore decision-making under "
+    "uncertainty, limited infrastructure and competing priorities."
 )
 
 
 # ============================================================
-# SIDEBAR — WEATHER & PORT CONDITIONS
+# SIDEBAR
 # ============================================================
 
-st.sidebar.header("🌊 Port conditions")
+st.sidebar.header("🌊 WEATHER")
 
-wind_speed = st.sidebar.slider(
+wind = st.sidebar.slider(
     "Wind speed (knots)",
-    min_value=5,
-    max_value=55,
-    value=28
+    5, 55, 28
 )
 
-wave_height = st.sidebar.slider(
+waves = st.sidebar.slider(
     "Wave height (m)",
-    min_value=0.5,
-    max_value=8.0,
-    value=4.2,
-    step=0.1
+    0.5, 8.0, 4.2, 0.1
 )
 
 visibility = st.sidebar.slider(
     "Visibility (km)",
-    min_value=0.2,
-    max_value=15.0,
-    value=1.8,
-    step=0.1
+    0.2, 15.0, 1.8, 0.1
 )
 
-weather_change_minutes = st.sidebar.slider(
-    "Expected severe deterioration in (minutes)",
-    min_value=10,
-    max_value=180,
-    value=35
+deterioration = st.sidebar.slider(
+    "Severe deterioration expected in (min)",
+    10, 180, 35
 )
 
 st.sidebar.divider()
 
-st.sidebar.header("🏗️ Available port resources")
+st.sidebar.header("⚓ PORT CAPACITY")
 
-available_berths = st.sidebar.number_input(
+berths = st.sidebar.number_input(
     "Available berths",
-    min_value=1,
-    max_value=10,
-    value=3
+    1, 6, 3
 )
 
-available_tugs = st.sidebar.number_input(
+tugs = st.sidebar.number_input(
     "Available tugboats",
-    min_value=0,
-    max_value=10,
-    value=2
+    0, 6, 2
 )
 
-available_pilots = st.sidebar.number_input(
+pilots = st.sidebar.number_input(
     "Available pilots",
-    min_value=0,
-    max_value=10,
-    value=1
+    0, 6, 1
 )
 
 st.sidebar.divider()
 
-st.sidebar.header("⚙️ Decision philosophy")
+st.sidebar.header("🎯 DECISION PRIORITIES")
 
 safety_weight = st.sidebar.slider(
     "Safety",
-    0,
-    100,
-    30
-)
-
-urgency_weight = st.sidebar.slider(
-    "Urgency",
-    0,
-    100,
-    20
+    0, 100, 30
 )
 
 passenger_weight = st.sidebar.slider(
     "Passenger impact",
-    0,
-    100,
-    15
+    0, 100, 15
 )
 
 cargo_weight = st.sidebar.slider(
-    "Cargo criticality",
-    0,
-    100,
-    15
-)
-
-waiting_weight = st.sidebar.slider(
-    "Waiting time",
-    0,
-    100,
-    10
+    "Critical cargo",
+    0, 100, 15
 )
 
 economic_weight = st.sidebar.slider(
     "Economic impact",
-    0,
-    100,
-    10
+    0, 100, 15
 )
 
-total_weight = (
+waiting_weight = st.sidebar.slider(
+    "Waiting time",
+    0, 100, 10
+)
+
+weather_weight = st.sidebar.slider(
+    "Weather window",
+    0, 100, 15
+)
+
+weight_sum = (
     safety_weight +
-    urgency_weight +
     passenger_weight +
     cargo_weight +
+    economic_weight +
     waiting_weight +
-    economic_weight
+    weather_weight
 )
 
-if total_weight == 0:
-    st.sidebar.error("At least one decision weight must be greater than zero.")
-
 
 # ============================================================
-# WEATHER RISK MODEL
+# WEATHER MODEL
 # ============================================================
 
-def calculate_weather_risk(wind, waves, visibility):
-    """
-    Converts environmental conditions into a 0-100 risk score.
-    This is a simulation model, not a real maritime safety standard.
-    """
+def weather_risk(wind, waves, visibility):
+    wind_score = np.clip((wind - 10) / 40 * 100, 0, 100)
+    wave_score = np.clip((waves - 0.5) / 7.5 * 100, 0, 100)
+    visibility_score = np.clip((8 - visibility) / 8 * 100, 0, 100)
 
-    wind_component = np.clip((wind - 10) / 40 * 100, 0, 100)
-    wave_component = np.clip((waves - 0.5) / 7.5 * 100, 0, 100)
-    visibility_component = np.clip((8 - visibility) / 8 * 100, 0, 100)
-
-    risk = (
-        0.40 * wind_component +
-        0.40 * wave_component +
-        0.20 * visibility_component
+    return round(
+        0.4 * wind_score +
+        0.4 * wave_score +
+        0.2 * visibility_score,
+        1
     )
 
-    return round(float(np.clip(risk, 0, 100)), 1)
 
-
-weather_risk = calculate_weather_risk(
-    wind_speed,
-    wave_height,
+current_risk = weather_risk(
+    wind,
+    waves,
     visibility
 )
 
 
-def weather_status(risk):
-    if risk >= 75:
-        return "CRITICAL", "risk-high"
-    elif risk >= 50:
-        return "HIGH", "risk-medium"
-    elif risk >= 30:
-        return "MODERATE", "risk-medium"
-    else:
-        return "LOW", "risk-low"
+def weather_label(risk):
+    if risk >= 80:
+        return "CRITICAL"
+    if risk >= 60:
+        return "HIGH"
+    if risk >= 35:
+        return "MODERATE"
+    return "LOW"
 
 
-risk_label, risk_class = weather_status(weather_risk)
-
-
-# ============================================================
-# DYNAMIC WEATHER PRESSURE
-# ============================================================
-
-def deterioration_pressure(minutes):
-    """
-    The closer severe deterioration is, the stronger
-    the model prioritizes vessels that have a safe window now.
-    """
-
-    if minutes <= 20:
-        return 100
-    elif minutes <= 40:
-        return 85
-    elif minutes <= 60:
-        return 70
-    elif minutes <= 90:
-        return 50
-    elif minutes <= 120:
-        return 30
-    else:
-        return 15
-
-
-weather_pressure = deterioration_pressure(weather_change_minutes)
+risk_label = weather_label(current_risk)
 
 
 # ============================================================
-# VESSEL DATABASE
+# VESSEL DATA
 # ============================================================
 
 vessels = pd.DataFrame([
@@ -342,371 +267,577 @@ vessels = pd.DataFrame([
         "Vessel": "Ocean Star",
         "Type": "Cruise Liner",
         "Passengers": 2840,
-        "Cargo Value ($M)": 0,
-        "Cargo Criticality": 10,
-        "Waiting (h)": 3.3,
-        "Economic Impact ($M/h)": 0.42,
-        "Medical Emergency": True,
-        "Perishable Cargo": False,
-        "Fuel Urgency": 60,
-        "Safe Entry": True,
-        "Berth Time (min)": 35,
-        "Tug Required": True,
-        "Pilot Required": True
-    },
-    {
-        "Vessel": "MedExpress",
-        "Type": "Medical Cargo",
-        "Passengers": 0,
-        "Cargo Value ($M)": 38,
-        "Cargo Criticality": 100,
-        "Waiting (h)": 0.8,
-        "Economic Impact ($M/h)": 0.75,
-        "Medical Emergency": False,
-        "Perishable Cargo": True,
-        "Fuel Urgency": 40,
-        "Safe Entry": True,
-        "Berth Time (min)": 25,
-        "Tug Required": True,
-        "Pilot Required": True
-    },
-    {
-        "Vessel": "Baltic Trader",
-        "Type": "Container Ship",
-        "Passengers": 0,
-        "Cargo Value ($M)": 120,
-        "Cargo Criticality": 55,
-        "Waiting (h)": 2.2,
-        "Economic Impact ($M/h)": 1.35,
-        "Medical Emergency": False,
-        "Perishable Cargo": False,
-        "Fuel Urgency": 50,
-        "Safe Entry": True,
-        "Berth Time (min)": 50,
-        "Tug Required": True,
-        "Pilot Required": True
-    },
-    {
-        "Vessel": "Aurora",
-        "Type": "Tanker",
-        "Passengers": 0,
-        "Cargo Value ($M)": 95,
-        "Cargo Criticality": 70,
-        "Waiting (h)": 1.7,
-        "Economic Impact ($M/h)": 1.10,
-        "Medical Emergency": False,
-        "Perishable Cargo": False,
-        "Fuel Urgency": 95,
-        "Safe Entry": True,
-        "Berth Time (min)": 45,
-        "Tug Required": True,
-        "Pilot Required": True
-    },
-    {
-        "Vessel": "Northern Wind",
-        "Type": "Ferry",
-        "Passengers": 720,
-        "Cargo Value ($M)": 4,
-        "Cargo Criticality": 35,
-        "Waiting (h)": 4.1,
-        "Economic Impact ($M/h)": 0.18,
-        "Medical Emergency": False,
-        "Perishable Cargo": False,
+        "Cargo Criticality": 5,
+        "Economic Impact": 0.42,
+        "Waiting": 3.3,
+        "Service Time": 35,
+        "Tugs": 1,
+        "Pilots": 1,
+        "Medical": True,
+        "Perishable": False,
         "Fuel Urgency": 65,
-        "Safe Entry": True,
-        "Berth Time (min)": 20,
-        "Tug Required": False,
-        "Pilot Required": True
-    },
-    {
-        "Vessel": "FreshLine",
-        "Type": "Refrigerated Cargo",
-        "Passengers": 0,
-        "Cargo Value ($M)": 52,
-        "Cargo Criticality": 80,
-        "Waiting (h)": 2.8,
-        "Economic Impact ($M/h)": 0.82,
-        "Medical Emergency": False,
-        "Perishable Cargo": True,
-        "Fuel Urgency": 55,
-        "Safe Entry": True,
-        "Berth Time (min)": 30,
-        "Tug Required": True,
-        "Pilot Required": True
+        "Max Wind": 32,
+        "Max Waves": 4.5
     },
     {
         "Vessel": "Pacific Horizon",
         "Type": "Cruise Liner",
         "Passengers": 4100,
-        "Cargo Value ($M)": 0,
         "Cargo Criticality": 5,
-        "Waiting (h)": 1.4,
-        "Economic Impact ($M/h)": 0.56,
-        "Medical Emergency": False,
-        "Perishable Cargo": False,
+        "Economic Impact": 0.56,
+        "Waiting": 1.4,
+        "Service Time": 40,
+        "Tugs": 1,
+        "Pilots": 1,
+        "Medical": False,
+        "Perishable": False,
         "Fuel Urgency": 70,
-        "Safe Entry": True,
-        "Berth Time (min)": 40,
-        "Tug Required": True,
-        "Pilot Required": True
+        "Max Wind": 30,
+        "Max Waves": 4.0
+    },
+    {
+        "Vessel": "MedExpress",
+        "Type": "Medical Cargo",
+        "Passengers": 0,
+        "Cargo Criticality": 100,
+        "Economic Impact": 0.75,
+        "Waiting": 0.8,
+        "Service Time": 25,
+        "Tugs": 1,
+        "Pilots": 1,
+        "Medical": False,
+        "Perishable": True,
+        "Fuel Urgency": 40,
+        "Max Wind": 40,
+        "Max Waves": 5.5
+    },
+    {
+        "Vessel": "Baltic Trader",
+        "Type": "Container Ship",
+        "Passengers": 0,
+        "Cargo Criticality": 55,
+        "Economic Impact": 1.35,
+        "Waiting": 2.2,
+        "Service Time": 50,
+        "Tugs": 1,
+        "Pilots": 1,
+        "Medical": False,
+        "Perishable": False,
+        "Fuel Urgency": 50,
+        "Max Wind": 38,
+        "Max Waves": 5.0
+    },
+    {
+        "Vessel": "Aurora",
+        "Type": "Tanker",
+        "Passengers": 0,
+        "Cargo Criticality": 70,
+        "Economic Impact": 1.10,
+        "Waiting": 1.7,
+        "Service Time": 45,
+        "Tugs": 1,
+        "Pilots": 1,
+        "Medical": False,
+        "Perishable": False,
+        "Fuel Urgency": 95,
+        "Max Wind": 34,
+        "Max Waves": 4.5
+    },
+    {
+        "Vessel": "Northern Wind",
+        "Type": "Ferry",
+        "Passengers": 720,
+        "Cargo Criticality": 35,
+        "Economic Impact": 0.18,
+        "Waiting": 4.1,
+        "Service Time": 20,
+        "Tugs": 0,
+        "Pilots": 1,
+        "Medical": False,
+        "Perishable": False,
+        "Fuel Urgency": 65,
+        "Max Wind": 36,
+        "Max Waves": 5.0
+    },
+    {
+        "Vessel": "FreshLine",
+        "Type": "Refrigerated Cargo",
+        "Passengers": 0,
+        "Cargo Criticality": 80,
+        "Economic Impact": 0.82,
+        "Waiting": 2.8,
+        "Service Time": 30,
+        "Tugs": 1,
+        "Pilots": 1,
+        "Medical": False,
+        "Perishable": True,
+        "Fuel Urgency": 55,
+        "Max Wind": 37,
+        "Max Waves": 5.0
     },
     {
         "Vessel": "Atlas Heavy",
         "Type": "Heavy Cargo",
         "Passengers": 0,
-        "Cargo Value ($M)": 180,
         "Cargo Criticality": 65,
-        "Waiting (h)": 5.2,
-        "Economic Impact ($M/h)": 1.55,
-        "Medical Emergency": False,
-        "Perishable Cargo": False,
+        "Economic Impact": 1.55,
+        "Waiting": 5.2,
+        "Service Time": 60,
+        "Tugs": 1,
+        "Pilots": 1,
+        "Medical": False,
+        "Perishable": False,
         "Fuel Urgency": 35,
-        "Safe Entry": True,
-        "Berth Time (min)": 60,
-        "Tug Required": True,
-        "Pilot Required": True
+        "Max Wind": 35,
+        "Max Waves": 4.5
     }
 ])
 
 
 # ============================================================
-# NORMALIZATION HELPERS
+# NORMALIZATION
 # ============================================================
 
 def normalize(series):
-    minimum = series.min()
-    maximum = series.max()
 
-    if maximum == minimum:
+    low = series.min()
+    high = series.max()
+
+    if high == low:
         return pd.Series(
             [50] * len(series),
             index=series.index
         )
 
-    return ((series - minimum) / (maximum - minimum) * 100)
+    return (series - low) / (high - low) * 100
 
 
-vessels["Waiting Score"] = normalize(vessels["Waiting (h)"])
-vessels["Economic Score"] = normalize(vessels["Economic Impact ($M/h)"])
-vessels["Passenger Score"] = normalize(vessels["Passengers"])
+vessels["Passenger Score"] = normalize(
+    vessels["Passengers"]
+)
+
+vessels["Economic Score"] = normalize(
+    vessels["Economic Impact"]
+)
+
+vessels["Waiting Score"] = normalize(
+    vessels["Waiting"]
+)
 
 
 # ============================================================
-# SAFETY FEASIBILITY
+# SAFETY MODEL
 # ============================================================
 
-def calculate_safe_entry(row, risk):
-    """
-    Hard safety filter.
+def safety_status(row, risk):
 
-    This is deliberately conservative.
-    It is a conceptual simulation and not a real port safety rule.
-    """
+    wind_safe = wind <= row["Max Wind"]
+    wave_safe = waves <= row["Max Waves"]
 
-    if not row["Safe Entry"]:
+    if wind_safe and wave_safe:
+        return True
+
+    return False
+
+
+vessels["Safe Now"] = vessels.apply(
+    lambda row: safety_status(row, current_risk),
+    axis=1
+)
+
+
+# ============================================================
+# WEATHER WINDOW
+# ============================================================
+
+def weather_window_score(row):
+
+    wind_margin = max(
+        0,
+        row["Max Wind"] - wind
+    )
+
+    wave_margin = max(
+        0,
+        row["Max Waves"] - waves
+    )
+
+    wind_score = min(
+        100,
+        wind_margin / 20 * 100
+    )
+
+    wave_score = min(
+        100,
+        wave_margin / 4 * 100
+    )
+
+    urgency = max(
+        0,
+        100 - deterioration / 1.8
+    )
+
+    return round(
+        0.35 * wind_score +
+        0.35 * wave_score +
+        0.30 * urgency,
+        2
+    )
+
+
+vessels["Weather Window"] = vessels.apply(
+    weather_window_score,
+    axis=1
+)
+
+
+# ============================================================
+# PRIORITY MODEL
+# ============================================================
+
+def base_priority(row):
+
+    medical_bonus = 35 if row["Medical"] else 0
+    perish_bonus = 20 if row["Perishable"] else 0
+
+    safety_score = (
+        100
+        if row["Safe Now"]
+        else 0
+    )
+
+    urgency = min(
+        100,
+        row["Fuel Urgency"] * 0.6 +
+        row["Waiting Score"] * 0.25 +
+        perish_bonus +
+        medical_bonus
+    )
+
+    if weight_sum == 0:
+        return 0
+
+    score = (
+        safety_score * safety_weight +
+        row["Passenger Score"] * passenger_weight +
+        row["Cargo Criticality"] * cargo_weight +
+        row["Economic Score"] * economic_weight +
+        row["Waiting Score"] * waiting_weight +
+        row["Weather Window"] * weather_weight
+    ) / weight_sum
+
+    # Emergency bonus
+    score += medical_bonus * 0.15
+    score += perish_bonus * 0.08
+
+    return round(
+        min(100, score),
+        2
+    )
+
+
+vessels["Priority"] = vessels.apply(
+    base_priority,
+    axis=1
+)
+
+
+# ============================================================
+# OPERATIONAL FEASIBILITY
+# ============================================================
+
+def resource_feasible(row):
+
+    if row["Tugs"] > tugs:
         return False
 
-    if risk >= 90:
-        return False
-
-    if risk >= 75 and row["Type"] in ["Cruise Liner", "Tanker"]:
-        return False
-
-    if risk >= 65 and row["Type"] == "Cruise Liner":
-        return False
-
-    if risk >= 80 and row["Berth Time (min)"] > 45:
+    if row["Pilots"] > pilots:
         return False
 
     return True
 
 
-vessels["Currently Safe"] = vessels.apply(
-    lambda row: calculate_safe_entry(row, weather_risk),
-    axis=1
-)
-
-
-# ============================================================
-# PRIORITY COMPONENTS
-# ============================================================
-
-def calculate_priority_components(row):
-    """
-    Calculates interpretable components of the priority score.
-    """
-
-    # Safety urgency:
-    # Higher when environmental conditions are deteriorating
-    # and when the vessel has a narrow safe window.
-    safety_component = (
-        weather_pressure * 0.65 +
-        row["Fuel Urgency"] * 0.20 +
-        (100 if row["Medical Emergency"] else 0) * 0.15
-    )
-
-    urgency_component = min(
-        100,
-        row["Waiting Score"] * 0.45 +
-        row["Fuel Urgency"] * 0.25 +
-        (100 if row["Perishable Cargo"] else 0) * 0.20 +
-        weather_pressure * 0.10
-    )
-
-    passenger_component = row["Passenger Score"]
-
-    cargo_component = row["Cargo Criticality"]
-
-    waiting_component = row["Waiting Score"]
-
-    economic_component = row["Economic Score"]
-
-    return {
-        "Safety": np.clip(safety_component, 0, 100),
-        "Urgency": np.clip(urgency_component, 0, 100),
-        "Passengers": np.clip(passenger_component, 0, 100),
-        "Cargo": np.clip(cargo_component, 0, 100),
-        "Waiting": np.clip(waiting_component, 0, 100),
-        "Economic": np.clip(economic_component, 0, 100)
-    }
-
-
-component_rows = []
-
-for _, row in vessels.iterrows():
-    components = calculate_priority_components(row)
-
-    component_rows.append({
-        "Vessel": row["Vessel"],
-        **components
-    })
-
-components_df = pd.DataFrame(component_rows)
-
-
-# ============================================================
-# FINAL SCORE
-# ============================================================
-
-def calculate_final_score(row, components):
-    if total_weight == 0:
-        return 0
-
-    score = (
-        components["Safety"] * safety_weight +
-        components["Urgency"] * urgency_weight +
-        components["Passengers"] * passenger_weight +
-        components["Cargo"] * cargo_weight +
-        components["Waiting"] * waiting_weight +
-        components["Economic"] * economic_weight
-    ) / total_weight
-
-    return round(float(score), 2)
-
-
-scores = []
-
-for _, row in vessels.iterrows():
-    comp = components_df[
-        components_df["Vessel"] == row["Vessel"]
-    ].iloc[0]
-
-    score = calculate_final_score(row, comp)
-
-    scores.append(score)
-
-vessels["Priority Score"] = scores
-
-
-# ============================================================
-# RESOURCE FEASIBILITY
-# ============================================================
-
-def resource_feasibility(row):
-    tug_ok = (
-        not row["Tug Required"] or
-        available_tugs > 0
-    )
-
-    pilot_ok = (
-        not row["Pilot Required"] or
-        available_pilots > 0
-    )
-
-    return tug_ok and pilot_ok
-
-
 vessels["Resources Available"] = vessels.apply(
-    resource_feasibility,
+    resource_feasible,
     axis=1
 )
 
-
-# ============================================================
-# FINAL ELIGIBILITY
-# ============================================================
 
 vessels["Eligible"] = (
-    vessels["Currently Safe"] &
+    vessels["Safe Now"] &
     vessels["Resources Available"]
 )
 
 
 # ============================================================
-# DOWNSTREAM IMPACT
+# COST OF DELAY
 # ============================================================
 
-def downstream_impact(row):
-    """
-    Estimates consequences of delaying this vessel.
-    This is a conceptual simulation metric.
-    """
+def delay_cost(row, delay_minutes):
 
-    impact = (
-        row["Economic Impact ($M/h)"] * 15 +
-        row["Cargo Criticality"] * 0.25 +
-        row["Passengers"] / 100 +
-        row["Waiting (h)"] * 8
+    delay_hours = delay_minutes / 60
+
+    cost = (
+        row["Economic Impact"] *
+        delay_hours
     )
 
-    if row["Medical Emergency"]:
-        impact += 40
+    # passenger welfare component
+    passenger_cost = (
+        row["Passengers"] *
+        0.00008 *
+        delay_hours
+    )
 
-    if row["Perishable Cargo"]:
-        impact += 20
+    # critical cargo
+    cargo_cost = (
+        row["Cargo Criticality"] /
+        100 *
+        0.25 *
+        delay_hours
+    )
 
-    return round(float(np.clip(impact, 0, 100)), 2)
+    # medical emergency
+    medical_cost = (
+        2.5 * delay_hours
+        if row["Medical"]
+        else 0
+    )
+
+    # perishables
+    perish_cost = (
+        1.2 * delay_hours
+        if row["Perishable"]
+        else 0
+    )
+
+    # waiting itself creates increasing pressure
+    waiting_penalty = (
+        row["Waiting"] *
+        0.04 *
+        delay_hours
+    )
+
+    return (
+        cost +
+        passenger_cost +
+        cargo_cost +
+        medical_cost +
+        perish_cost +
+        waiting_penalty
+    )
 
 
-vessels["Downstream Impact"] = vessels.apply(
-    downstream_impact,
-    axis=1
+# ============================================================
+# OPTIMIZATION ENGINE
+# ============================================================
+
+def sequence_cost(sequence, data):
+
+    current_time = 0
+
+    total_cost = 0
+
+    details = []
+
+    for name in sequence:
+
+        row = data[
+            data["Vessel"] == name
+        ].iloc[0]
+
+        start_time = current_time
+        finish_time = (
+            current_time +
+            row["Service Time"]
+        )
+
+        # If the vessel becomes unsafe before its turn,
+        # applying a severe penalty.
+        safe_until_storm = deterioration
+
+        safety_penalty = 0
+
+        if start_time > safe_until_storm:
+            safety_penalty += 20
+
+        if start_time <= safe_until_storm:
+
+            if not row["Safe Now"]:
+                safety_penalty += 100
+
+        delay = start_time
+
+        cost = delay_cost(
+            row,
+            delay
+        )
+
+        # Strongly penalize unsafe entry
+        if not row["Safe Now"]:
+            cost += 100
+
+        cost += safety_penalty
+
+        total_cost += cost
+
+        details.append({
+            "Vessel": name,
+            "Start": start_time,
+            "Finish": finish_time,
+            "Delay": delay,
+            "Cost": cost
+        })
+
+        current_time = finish_time
+
+    return total_cost, details
+
+
+def optimize_sequence(data):
+
+    eligible = data[
+        data["Eligible"]
+    ].copy()
+
+    if len(eligible) == 0:
+        return None
+
+    names = eligible["Vessel"].tolist()
+
+    best_sequence = None
+    best_cost = float("inf")
+    best_details = None
+
+    # For 8 vessels this is still computationally manageable.
+    # 8! = 40,320 possible sequences.
+    for sequence in itertools.permutations(names):
+
+        cost, details = sequence_cost(
+            sequence,
+            eligible
+        )
+
+        if cost < best_cost:
+            best_cost = cost
+            best_sequence = sequence
+            best_details = details
+
+    return {
+        "sequence": best_sequence,
+        "cost": best_cost,
+        "details": best_details
+    }
+
+
+optimization = optimize_sequence(
+    vessels
 )
 
 
 # ============================================================
-# DECISION SCORE
+# ALTERNATIVE STRATEGIES
 # ============================================================
 
-vessels["Decision Score"] = (
-    vessels["Priority Score"] * 0.75 +
-    vessels["Downstream Impact"] * 0.25
-)
+def strategy_sequence(data, strategy):
 
-vessels.loc[
-    ~vessels["Eligible"],
-    "Decision Score"
-] = -1
+    eligible = data[
+        data["Eligible"]
+    ].copy()
+
+    if len(eligible) == 0:
+        return []
+
+    if strategy == "Priority-first":
+        return eligible.sort_values(
+            "Priority",
+            ascending=False
+        )["Vessel"].tolist()
+
+    if strategy == "Economic-first":
+        return eligible.sort_values(
+            "Economic Impact",
+            ascending=False
+        )["Vessel"].tolist()
+
+    if strategy == "Passenger-first":
+        return eligible.sort_values(
+            "Passengers",
+            ascending=False
+        )["Vessel"].tolist()
+
+    if strategy == "Critical-cargo-first":
+        return eligible.sort_values(
+            "Cargo Criticality",
+            ascending=False
+        )["Vessel"].tolist()
+
+    if strategy == "Waiting-time-first":
+        return eligible.sort_values(
+            "Waiting",
+            ascending=False
+        )["Vessel"].tolist()
+
+    return []
 
 
-vessels = vessels.sort_values(
-    "Decision Score",
-    ascending=False
-).reset_index(drop=True)
+def evaluate_sequence(sequence, data):
 
-vessels["Recommended Position"] = np.arange(
-    1,
-    len(vessels) + 1
+    if not sequence:
+        return 0
+
+    cost, details = sequence_cost(
+        sequence,
+        data[
+            data["Vessel"].isin(sequence)
+        ]
+    )
+
+    return round(cost, 3)
+
+
+strategies = [
+    "Priority-first",
+    "Economic-first",
+    "Passenger-first",
+    "Critical-cargo-first",
+    "Waiting-time-first"
+]
+
+strategy_results = []
+
+for strategy in strategies:
+
+    seq = strategy_sequence(
+        vessels,
+        strategy
+    )
+
+    cost = evaluate_sequence(
+        seq,
+        vessels
+    )
+
+    strategy_results.append({
+        "Strategy": strategy,
+        "Cost": cost
+    })
+
+
+if optimization:
+
+    strategy_results.append({
+        "Strategy": "OPTIMIZED",
+        "Cost": round(
+            optimization["cost"],
+            3
+        )
+    })
+
+strategy_df = pd.DataFrame(
+    strategy_results
+).sort_values(
+    "Cost"
 )
 
 
@@ -714,73 +845,80 @@ vessels["Recommended Position"] = np.arange(
 # TOP METRICS
 # ============================================================
 
-col1, col2, col3, col4 = st.columns(4)
+m1, m2, m3, m4 = st.columns(4)
 
-with col1:
+with m1:
     st.metric(
         "Weather risk",
-        f"{weather_risk}/100",
+        f"{current_risk}/100",
         risk_label
     )
 
-with col2:
+with m2:
     st.metric(
         "Safe vessels",
         f"{int(vessels['Eligible'].sum())}/{len(vessels)}"
     )
 
-with col3:
+with m3:
     st.metric(
         "Available berths",
-        available_berths
+        int(berths)
     )
 
-with col4:
-    st.metric(
-        "Storm deterioration",
-        f"{weather_change_minutes} min"
-    )
+with m4:
+    if optimization:
+        st.metric(
+            "Optimal sequence cost",
+            f"{optimization['cost']:.2f}"
+        )
+    else:
+        st.metric(
+            "Optimal sequence",
+            "NONE"
+        )
 
 
 # ============================================================
 # WEATHER STATUS
 # ============================================================
 
-st.markdown("## 🌊 Current situation")
+st.markdown("## 🌊 Current operational situation")
 
-if risk_label == "CRITICAL":
+if current_risk >= 80:
+
     st.markdown(
         f"""
-        <div class="risk-high">
-            <strong>CRITICAL WEATHER CONDITIONS</strong><br>
-            Current environmental risk is <strong>{weather_risk}/100</strong>.
-            The system is applying a highly conservative safety filter.
-            Some vessel types may be temporarily ineligible for entry.
+        <div class="danger">
+        <strong>CRITICAL CONDITIONS</strong><br>
+        Environmental risk: {current_risk}/100.
+        The model applies a strict safety filter.
         </div>
         """,
         unsafe_allow_html=True
     )
 
-elif risk_label == "HIGH":
+elif current_risk >= 60:
+
     st.markdown(
         f"""
-        <div class="risk-medium">
-            <strong>HIGH WEATHER RISK</strong><br>
-            Environmental risk is <strong>{weather_risk}/100</strong>.
-            The system is prioritizing vessels with urgent or
-            high-impact consequences while preserving safety constraints.
+        <div class="warning">
+        <strong>HIGH WEATHER RISK</strong><br>
+        Environmental risk: {current_risk}/100.
+        The available safe operating window is becoming limited.
         </div>
         """,
         unsafe_allow_html=True
     )
 
 else:
+
     st.markdown(
         f"""
-        <div class="risk-low">
-            <strong>MANAGEABLE CONDITIONS</strong><br>
-            Current environmental risk is <strong>{weather_risk}/100</strong>.
-            Normal prioritization logic is active.
+        <div class="good">
+        <strong>MANAGEABLE CONDITIONS</strong><br>
+        Environmental risk: {current_risk}/100.
+        Standard prioritization is active.
         </div>
         """,
         unsafe_allow_html=True
@@ -788,368 +926,377 @@ else:
 
 
 # ============================================================
-# MAIN TABS
+# TABS
 # ============================================================
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "🚢 Decision Board",
-    "📊 Why this order?",
-    "🌪️ Scenario Simulator",
-    "👤 Human Override",
-    "📋 Decision Log"
+    "⚓ OPTIMAL PLAN",
+    "📊 WHY?",
+    "🌪️ SCENARIOS",
+    "👤 HUMAN OVERRIDE",
+    "📋 DECISION LOG"
 ])
 
 
 # ============================================================
-# TAB 1 — DECISION BOARD
+# TAB 1 — OPTIMAL PLAN
 # ============================================================
 
 with tab1:
 
-    st.subheader("Recommended vessel priority")
+    st.subheader("Optimal operational sequence")
 
-    display_df = vessels[[
-        "Recommended Position",
-        "Vessel",
-        "Type",
-        "Passengers",
-        "Cargo Criticality",
-        "Waiting (h)",
-        "Priority Score",
-        "Downstream Impact",
-        "Decision Score",
-        "Currently Safe",
-        "Eligible"
-    ]].copy()
+    if optimization is None:
 
-    display_df.columns = [
-        "Position",
-        "Vessel",
-        "Type",
-        "Passengers",
-        "Cargo criticality",
-        "Waiting (h)",
-        "Priority",
-        "Downstream impact",
-        "Final decision score",
-        "Safe now",
-        "Eligible"
-    ]
-
-    st.dataframe(
-        display_df,
-        use_container_width=True,
-        hide_index=True
-    )
-
-    st.markdown("### Recommended sequence")
-
-    eligible_vessels = vessels[
-        vessels["Eligible"]
-    ].copy()
-
-    if len(eligible_vessels) == 0:
-        st.warning(
-            "No vessel currently satisfies the safety and resource constraints. "
-            "The system recommends keeping all vessels in a safe waiting area."
+        st.error(
+            "No vessel currently satisfies the safety and resource constraints."
         )
+
     else:
-        for i, (_, row) in enumerate(
-            eligible_vessels.head(available_berths).iterrows(),
+
+        st.markdown(
+            f"""
+            <div class="card">
+            <strong>Optimization objective</strong><br>
+            Minimize the estimated total cost of delay, passenger impact,
+            cargo disruption and safety-related penalties while respecting
+            current operational constraints.
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        for i, item in enumerate(
+            optimization["details"],
             start=1
         ):
+
+            row = vessels[
+                vessels["Vessel"] == item["Vessel"]
+            ].iloc[0]
+
+            icon = "🛳️"
+
+            if row["Type"] == "Medical Cargo":
+                icon = "💊"
+            elif row["Type"] == "Tanker":
+                icon = "🛢️"
+            elif row["Type"] == "Container Ship":
+                icon = "📦"
+            elif row["Type"] == "Ferry":
+                icon = "⛴️"
+
             st.markdown(
                 f"""
-                <div class="decision-box">
-                    <strong>#{i} — {row['Vessel']}</strong><br>
-                    {row['Type']} · {int(row['Passengers'])} passengers ·
-                    Priority score: <strong>{row['Priority Score']}</strong><br>
-                    <span class="small-muted">
-                    Downstream impact: {row['Downstream Impact']}/100
-                    </span>
+                <div class="sequence">
+                <strong>#{i} {icon} {item['Vessel']}</strong><br>
+                {row['Type']}<br>
+                <span class="small">
+                Starts at +{item['Start']:.0f} min ·
+                completes at +{item['Finish']:.0f} min ·
+                estimated delay: {item['Delay']:.0f} min
+                </span>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
 
-    st.info(
-        "Important: this is a conceptual decision-support model for an academic project. "
-        "It is not a real maritime safety system and does not replace port authorities, "
-        "captains, pilots or official navigation rules."
-    )
+        st.markdown("### Operational comparison")
+
+        st.dataframe(
+            strategy_df,
+            use_container_width=True,
+            hide_index=True
+        )
+
+        chart = strategy_df.sort_values(
+            "Cost"
+        )
+
+        st.bar_chart(
+            chart.set_index("Strategy")["Cost"]
+        )
+
+        st.success(
+            "The optimized sequence is selected by minimizing the model's "
+            "estimated total operational cost rather than maximizing a single priority score."
+        )
 
 
 # ============================================================
-# TAB 2 — WHY THIS ORDER?
+# TAB 2 — WHY
 # ============================================================
 
 with tab2:
 
-    st.subheader("Decision explainability")
+    st.subheader("Why did the model choose this order?")
 
-    vessel_choice = st.selectbox(
-        "Select a vessel",
-        vessels["Vessel"].tolist()
-    )
+    if optimization:
 
-    selected = vessels[
-        vessels["Vessel"] == vessel_choice
-    ].iloc[0]
-
-    selected_components = components_df[
-        components_df["Vessel"] == vessel_choice
-    ].iloc[0]
-
-    explain_data = pd.DataFrame({
-        "Factor": [
-            "Safety",
-            "Urgency",
-            "Passenger impact",
-            "Cargo criticality",
-            "Waiting time",
-            "Economic impact"
-        ],
-        "Score": [
-            selected_components["Safety"],
-            selected_components["Urgency"],
-            selected_components["Passengers"],
-            selected_components["Cargo"],
-            selected_components["Waiting"],
-            selected_components["Economic"]
-        ]
-    })
-
-    col1, col2 = st.columns([1.4, 1])
-
-    with col1:
-
-        fig = px.bar(
-            explain_data,
-            x="Score",
-            y="Factor",
-            orientation="h",
-            range_x=[0, 100],
-            title=f"Decision factors — {vessel_choice}"
+        selected_vessel = st.selectbox(
+            "Select vessel",
+            optimization["sequence"]
         )
 
-        fig.update_layout(
-            height=420,
-            margin=dict(l=20, r=20, t=60, b=20)
-        )
+        row = vessels[
+            vessels["Vessel"] == selected_vessel
+        ].iloc[0]
 
-        st.plotly_chart(
-            fig,
-            use_container_width=True
-        )
+        factors = pd.DataFrame({
+            "Factor": [
+                "Passenger impact",
+                "Cargo criticality",
+                "Economic impact",
+                "Waiting time",
+                "Weather window",
+                "Fuel urgency"
+            ],
+            "Value": [
+                row["Passenger Score"],
+                row["Cargo Criticality"],
+                row["Economic Score"],
+                row["Waiting Score"],
+                row["Weather Window"],
+                row["Fuel Urgency"]
+            ]
+        })
 
-    with col2:
+        st.bar_chart(
+            factors.set_index("Factor")
+        )
 
         st.markdown("### Decision explanation")
 
-        if selected["Medical Emergency"]:
+        if row["Medical"]:
             st.success(
-                "Medical emergency detected: urgency is significantly increased."
+                "Medical emergency detected: the model increases the cost of delay."
             )
 
-        if selected["Perishable Cargo"]:
+        if row["Perishable"]:
             st.info(
-                "Perishable cargo increases the cost of prolonged waiting."
+                "Perishable cargo increases the estimated consequences of waiting."
             )
 
-        if selected["Passengers"] > 0:
+        if row["Passengers"] > 0:
             st.info(
-                f"{int(selected['Passengers'])} passengers are affected by delay."
+                f"This vessel carries {int(row['Passengers']):,} passengers."
             )
 
-        if selected["Cargo Criticality"] >= 75:
+        if row["Cargo Criticality"] >= 80:
             st.info(
-                "Cargo is classified as highly critical."
+                "The cargo has very high criticality."
             )
 
-        if weather_pressure >= 70:
-            st.warning(
-                "Rapid weather deterioration increases the value of using "
-                "the current safe entry window."
+        if row["Economic Impact"] >= 1:
+            st.info(
+                "Delay has substantial estimated economic consequences."
             )
 
-        if not selected["Currently Safe"]:
+        if not row["Safe Now"]:
             st.error(
-                "This vessel currently fails the safety filter and cannot "
-                "receive an operational priority recommendation."
+                "This vessel is currently outside its simulated safe operating envelope."
             )
 
-    st.markdown("### How the final score is constructed")
+        st.markdown("### Model principle")
 
-    st.latex(
-        r"""
-        Priority =
-        \frac{
-        S_wS +
-        U_wU +
-        P_wP +
-        C_wC +
-        W_wW +
-        E_wE
-        }{
-        S_w+U_w+P_w+C_w+W_w+E_w
-        }
-        """
-    )
-
-    st.caption(
-        "The model uses normalized and interpretable components so that "
-        "a human decision-maker can inspect why a vessel was prioritized."
-    )
+        st.write(
+            "The system does not assume that the vessel with the highest "
+            "individual priority should always go first. It evaluates how "
+            "each vessel's position in the sequence changes the consequences "
+            "for the entire queue."
+        )
 
 
 # ============================================================
-# TAB 3 — SCENARIO SIMULATOR
+# TAB 3 — SCENARIOS
 # ============================================================
 
 with tab3:
 
-    st.subheader("🌪️ What happens if conditions change?")
+    st.subheader("🌪️ Scenario laboratory")
 
     st.write(
-        "Change one or more conditions and compare how the recommended "
-        "decision changes."
+        "Change the conditions and observe how the optimal strategy changes."
     )
 
-    scenario_col1, scenario_col2, scenario_col3 = st.columns(3)
+    c1, c2, c3 = st.columns(3)
 
-    with scenario_col1:
+    with c1:
         scenario_wind = st.slider(
-            "Scenario wind (knots)",
+            "Scenario wind",
             5,
             55,
-            wind_speed,
+            wind,
             key="scenario_wind"
         )
 
-    with scenario_col2:
+    with c2:
         scenario_waves = st.slider(
-            "Scenario waves (m)",
+            "Scenario waves",
             0.5,
             8.0,
-            wave_height,
-            step=0.1,
+            waves,
+            0.1,
             key="scenario_waves"
         )
 
-    with scenario_col3:
-        scenario_time = st.slider(
-            "Deterioration in (min)",
+    with c3:
+        scenario_deterioration = st.slider(
+            "Scenario deterioration",
             10,
             180,
-            weather_change_minutes,
-            key="scenario_time"
+            deterioration,
+            key="scenario_deterioration"
         )
 
-    scenario_risk = calculate_weather_risk(
+    scenario_risk = weather_risk(
         scenario_wind,
         scenario_waves,
         visibility
     )
 
-    scenario_pressure = deterioration_pressure(
-        scenario_time
-    )
-
     st.metric(
-        "Scenario weather risk",
+        "Scenario risk",
         f"{scenario_risk}/100"
     )
 
-    scenario_vessels = vessels.copy()
+    scenario_data = vessels.copy()
 
-    scenario_vessels["Scenario Safe"] = scenario_vessels.apply(
-        lambda row: calculate_safe_entry(
-            row,
-            scenario_risk
+    scenario_data["Safe Now"] = scenario_data.apply(
+        lambda row: (
+            scenario_wind <= row["Max Wind"] and
+            scenario_waves <= row["Max Waves"]
         ),
         axis=1
     )
 
-    scenario_vessels["Scenario Pressure"] = scenario_pressure
-
-    scenario_vessels["Scenario Decision"] = (
-        scenario_vessels["Decision Score"]
+    scenario_data["Eligible"] = (
+        scenario_data["Safe Now"] &
+        scenario_data["Resources Available"]
     )
 
-    scenario_vessels.loc[
-        ~scenario_vessels["Scenario Safe"],
-        "Scenario Decision"
-    ] = -1
+    # Temporarily update weather window
+    old_wind = wind
+    old_waves = waves
+    old_deterioration = deterioration
 
-    scenario_vessels = scenario_vessels.sort_values(
-        "Scenario Decision",
+    # calculate scenario window manually
+    def scenario_window(row):
+
+        wind_margin = max(
+            0,
+            row["Max Wind"] - scenario_wind
+        )
+
+        wave_margin = max(
+            0,
+            row["Max Waves"] - scenario_waves
+        )
+
+        wind_score = min(
+            100,
+            wind_margin / 20 * 100
+        )
+
+        wave_score = min(
+            100,
+            wave_margin / 4 * 100
+        )
+
+        urgency = max(
+            0,
+            100 - scenario_deterioration / 1.8
+        )
+
+        return (
+            0.35 * wind_score +
+            0.35 * wave_score +
+            0.30 * urgency
+        )
+
+    scenario_data["Weather Window"] = scenario_data.apply(
+        scenario_window,
+        axis=1
+    )
+
+    # Recalculate priority for scenario
+    scenario_priorities = []
+
+    for _, row in scenario_data.iterrows():
+
+        safety_score = (
+            100 if row["Safe Now"] else 0
+        )
+
+        score = (
+            safety_score * safety_weight +
+            row["Passenger Score"] * passenger_weight +
+            row["Cargo Criticality"] * cargo_weight +
+            row["Economic Score"] * economic_weight +
+            row["Waiting Score"] * waiting_weight +
+            row["Weather Window"] * weather_weight
+        )
+
+        if weight_sum > 0:
+            score /= weight_sum
+
+        if row["Medical"]:
+            score += 5
+
+        if row["Perishable"]:
+            score += 3
+
+        scenario_priorities.append(
+            min(100, score)
+        )
+
+    scenario_data["Priority"] = scenario_priorities
+
+    scenario_sequence = scenario_data[
+        scenario_data["Eligible"]
+    ].sort_values(
+        "Priority",
         ascending=False
-    )
+    )["Vessel"].tolist()
 
-    scenario_table = scenario_vessels[[
-        "Vessel",
-        "Type",
-        "Scenario Safe",
-        "Scenario Decision"
-    ]].copy()
+    if scenario_sequence:
 
-    scenario_table.columns = [
-        "Vessel",
-        "Type",
-        "Safe under scenario",
-        "Decision score"
-    ]
+        st.markdown("### Scenario recommendation")
 
-    st.dataframe(
-        scenario_table,
-        use_container_width=True,
-        hide_index=True
-    )
+        for i, name in enumerate(
+            scenario_sequence,
+            1
+        ):
+            st.write(
+                f"**#{i} — {name}**"
+            )
 
-    if st.button(
-        "RUN SCENARIO",
-        type="primary"
-    ):
-        st.session_state.simulation_ran = True
+        if optimization:
 
-        timestamp = datetime.now().strftime(
-            "%Y-%m-%d %H:%M:%S"
+            baseline = optimization["sequence"]
+
+            changed = (
+                scenario_sequence !=
+                list(baseline)
+            )
+
+            if changed:
+
+                st.warning(
+                    "The scenario changes the recommended sequence."
+                )
+
+            else:
+
+                st.success(
+                    "The recommended sequence remains stable under this scenario."
+                )
+
+    else:
+
+        st.error(
+            "No vessel can currently enter safely under this scenario."
         )
-
-        st.session_state.decision_log.append({
-            "Time": timestamp,
-            "Event": "Scenario simulation",
-            "Wind": scenario_wind,
-            "Waves": scenario_waves,
-            "Weather risk": scenario_risk,
-            "Deterioration": scenario_time
-        })
-
-        st.success(
-            "Scenario simulated. The decision order has been recalculated."
-        )
-
-    # Compare baseline and scenario
-    baseline_order = vessels[
-        vessels["Eligible"]
-    ]["Vessel"].tolist()
-
-    scenario_order = scenario_vessels[
-        scenario_vessels["Scenario Safe"]
-    ]["Vessel"].tolist()
-
-    comparison = pd.DataFrame({
-        "Baseline": pd.Series(baseline_order),
-        "Scenario": pd.Series(scenario_order)
-    })
-
-    st.markdown("### Baseline vs scenario")
-
-    st.dataframe(
-        comparison,
-        use_container_width=True,
-        hide_index=True
-    )
 
 
 # ============================================================
@@ -1161,84 +1308,102 @@ with tab4:
     st.subheader("👤 Human override")
 
     st.write(
-        "The algorithm is a decision-support tool, not the final authority. "
-        "A port coordinator may override the recommendation when new information "
-        "is unavailable to the model."
+        "The system is deliberately designed so that the algorithm "
+        "does not have absolute authority. A human decision-maker "
+        "can introduce information that the model does not have."
     )
 
-    override_vessel = st.selectbox(
-        "Choose a vessel to manually prioritize",
-        vessels["Vessel"].tolist(),
-        key="override_vessel"
-    )
+    if optimization:
 
-    override_reason = st.text_area(
-        "Reason for override",
-        placeholder=(
-            "Example: Unexpected medical emergency aboard the vessel. "
-            "The information was received after the latest algorithm update."
+        override_vessel = st.selectbox(
+            "Vessel to prioritize manually",
+            list(optimization["sequence"])
         )
-    )
 
-    if st.button(
-        "APPLY HUMAN OVERRIDE",
-        type="secondary"
-    ):
-
-        if not override_reason.strip():
-            st.error(
-                "Please provide a reason for the override."
+        reason = st.text_area(
+            "Reason for override",
+            placeholder=(
+                "Example: A new medical emergency was reported "
+                "after the latest data update."
             )
+        )
 
-        else:
+        if st.button(
+            "APPLY OVERRIDE",
+            type="primary"
+        ):
 
-            current_order = vessels[
-                vessels["Eligible"]
-            ]["Vessel"].tolist()
+            if not reason.strip():
 
-            if override_vessel in current_order:
-                current_order.remove(
+                st.error(
+                    "A reason is required."
+                )
+
+            else:
+
+                new_sequence = list(
+                    optimization["sequence"]
+                )
+
+                new_sequence.remove(
                     override_vessel
                 )
 
-            current_order.insert(
-                0,
-                override_vessel
-            )
-
-            timestamp = datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S"
-            )
-
-            st.session_state.decision_log.append({
-                "Time": timestamp,
-                "Event": "Human override",
-                "Vessel": override_vessel,
-                "Reason": override_reason
-            })
-
-            st.success(
-                f"{override_vessel} has been moved to priority position #1."
-            )
-
-            st.markdown("### Revised decision")
-
-            for i, vessel_name in enumerate(
-                current_order[:available_berths],
-                start=1
-            ):
-                st.write(
-                    f"**#{i} — {vessel_name}**"
+                new_sequence.insert(
+                    0,
+                    override_vessel
                 )
 
-            st.caption(
-                "The override is logged so that the system maintains "
-                "an auditable decision history."
-            )
+                timestamp = datetime.now().strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                )
+
+                st.session_state.decision_log.append({
+                    "Time": timestamp,
+                    "Type": "Human override",
+                    "Vessel": override_vessel,
+                    "Reason": reason
+                })
+
+                original_cost = evaluate_sequence(
+                    optimization["sequence"],
+                    vessels
+                )
+
+                override_cost = evaluate_sequence(
+                    new_sequence,
+                    vessels
+                )
+
+                st.success(
+                    f"{override_vessel} moved to priority #1."
+                )
+
+                st.metric(
+                    "Estimated cost difference",
+                    f"{override_cost - original_cost:+.2f}"
+                )
+
+                st.markdown("### Revised sequence")
+
+                for i, name in enumerate(
+                    new_sequence,
+                    1
+                ):
+
+                    st.write(
+                        f"**#{i} — {name}**"
+                    )
+
+                st.caption(
+                    "A higher estimated cost does not necessarily mean "
+                    "the human decision is wrong: the human may possess "
+                    "information not represented in the model."
+                )
 
 
 # ============================================================
-# TAB 5 — DECISION LOG
+# TAB 5 — LOG
 # ============================================================
 
 with tab5:
@@ -1248,26 +1413,27 @@ with tab5:
     if not st.session_state.decision_log:
 
         st.info(
-            "No decisions have been logged yet. "
-            "Run a scenario or apply a human override."
+            "No human overrides have been recorded yet."
         )
 
     else:
 
-        log_df = pd.DataFrame(
+        log = pd.DataFrame(
             st.session_state.decision_log
         )
 
         st.dataframe(
-            log_df,
+            log,
             use_container_width=True,
             hide_index=True
         )
 
         if st.button(
-            "Clear decision log"
+            "Clear log"
         ):
+
             st.session_state.decision_log = []
+
             st.rerun()
 
 
@@ -1277,33 +1443,60 @@ with tab5:
 
 st.divider()
 
-st.markdown("## 🧠 Research question")
+st.markdown("## 🔬 Research logic")
 
-st.markdown(
+st.write(
     """
-    **How should a port prioritize vessels when severe weather creates
-    a temporary shortage of safe berthing capacity?**
-    
-    The system explores the conflict between:
-    
-    - **safety**
-    - **passenger welfare**
-    - **critical cargo**
-    - **economic consequences**
-    - **waiting time**
-    - **limited infrastructure**
-    - **uncertain weather**
-    
-    Rather than searching for a universally "correct" order, the model
-    demonstrates how different decision priorities produce different
-    outcomes.
+    The central research question is not simply which vessel should enter first.
+    It is how a port should allocate scarce infrastructure when several
+    legitimate priorities conflict at the same time.
     """
 )
 
-st.markdown("## ⚠️ Model limitation")
+r1, r2, r3 = st.columns(3)
+
+with r1:
+
+    st.markdown(
+        """
+        ### Safety
+
+        A vessel outside its simulated safe operating envelope
+        cannot receive a normal operational recommendation.
+        """
+    )
+
+with r2:
+
+    st.markdown(
+        """
+        ### Optimization
+
+        The model evaluates possible sequences and estimates
+        the total consequences of delaying different vessels.
+        """
+    )
+
+with r3:
+
+    st.markdown(
+        """
+        ### Human judgment
+
+        The final decision remains with a human operator,
+        especially when new information is unavailable to the model.
+        """
+    )
+
+
+st.markdown("## ⚠️ Important limitation")
 
 st.caption(
-    "This application is an academic simulation. Its numerical thresholds, "
-    "weights and safety filters are illustrative and must not be used for "
-    "real maritime navigation or operational decisions."
+    "This is an academic simulation. Numerical thresholds, cost functions "
+    "and safety limits are illustrative and are not maritime regulations. "
+    "The system must not be used for real navigation or port operations."
+)
+
+st.caption(
+    "Version 2.0 · Port Priority System"
 )
