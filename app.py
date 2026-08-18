@@ -8,8 +8,8 @@ from datetime import datetime
 
 # ============================================================
 # PORT PRIORITY
-# Operational Decision Support System
-# Version 3.0
+# Maritime Operations Decision Support System
+# Version 4.0
 # ============================================================
 
 st.set_page_config(
@@ -21,7 +21,7 @@ st.set_page_config(
 
 
 # ============================================================
-# GLOBAL STYLE
+# VISUAL SYSTEM
 # ============================================================
 
 st.markdown("""
@@ -34,66 +34,165 @@ html, body, [class*="css"] {
 }
 
 .stApp {
-    background: #0b1118;
-    color: #e8edf2;
+    background:
+        radial-gradient(
+            ellipse at 50% -10%,
+            rgba(37, 108, 135, 0.20),
+            transparent 52%
+        ),
+        linear-gradient(
+            180deg,
+            #07131c 0%,
+            #081720 42%,
+            #091923 100%
+        );
+    color: #e8f0f4;
+}
+
+/* subtle ocean layers */
+
+.stApp::before {
+    content: "";
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 32vh;
+    pointer-events: none;
+    opacity: 0.12;
+    background:
+        repeating-linear-gradient(
+            175deg,
+            transparent 0px,
+            transparent 27px,
+            rgba(80, 180, 202, 0.20) 28px,
+            transparent 29px
+        );
+    z-index: 0;
 }
 
 .block-container {
     max-width: 1500px;
-    padding-top: 1.8rem;
-    padding-bottom: 4rem;
+    padding-top: 1.6rem;
+    padding-bottom: 3rem;
+    position: relative;
+    z-index: 1;
 }
-
-/* remove default top decoration */
 
 header[data-testid="stHeader"] {
     background: transparent;
 }
 
-/* sidebar */
-
 section[data-testid="stSidebar"] {
-    background: #0d151e;
-    border-right: 1px solid #202d39;
+    background:
+        linear-gradient(
+            180deg,
+            #08131c 0%,
+            #0a1821 100%
+        );
+    border-right: 1px solid #1d3542;
 }
 
 section[data-testid="stSidebar"] .block-container {
     padding-top: 2rem;
 }
 
-/* typography */
 
-h1, h2, h3 {
-    letter-spacing: -0.03em;
-}
-
-h1 {
-    font-weight: 700;
-}
-
-h2 {
-    font-size: 1.35rem;
-}
-
-h3 {
-    font-size: 1rem;
-}
-
-/* technical labels */
+/* ============================================================
+   TYPOGRAPHY
+   ============================================================ */
 
 .tech-label {
     font-family: 'DM Mono', monospace;
-    color: #718191;
-    font-size: 0.68rem;
-    letter-spacing: 0.12em;
+    color: #6d8997;
+    font-size: 0.64rem;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
 }
 
+.main-title {
+    font-size: 3rem;
+    font-weight: 700;
+    letter-spacing: -0.055em;
+    line-height: 0.95;
+    margin-top: 0.25rem;
+    background:
+        linear-gradient(
+            90deg,
+            #edf8fa 0%,
+            #8ed4df 48%,
+            #d8eef0 100%
+        );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.main-subtitle {
+    color: #7f98a5;
+    font-size: 0.88rem;
+    margin-top: 0.45rem;
+}
+
+
+/* ============================================================
+   MARITIME HEADER
+   ============================================================ */
+
+.marine-header {
+    position: relative;
+    overflow: hidden;
+    padding: 2rem 2.1rem 1.8rem 2.1rem;
+    border: 1px solid #214252;
+    background:
+        linear-gradient(
+            180deg,
+            rgba(17, 53, 67, 0.55),
+            rgba(7, 20, 29, 0.88)
+        );
+}
+
+.marine-header::after {
+    content: "";
+    position: absolute;
+    left: -5%;
+    right: -5%;
+    bottom: -24px;
+    height: 70px;
+    opacity: 0.28;
+    background:
+        radial-gradient(
+            ellipse at 20% 50%,
+            transparent 0 55%,
+            rgba(91, 190, 207, 0.35) 56%,
+            transparent 59%
+        ),
+        radial-gradient(
+            ellipse at 70% 55%,
+            transparent 0 55%,
+            rgba(91, 190, 207, 0.25) 56%,
+            transparent 59%
+        );
+    transform: rotate(-2deg);
+}
+
+.header-grid {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2rem;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+}
+
+.system-status {
+    text-align: right;
+}
+
 .status-live {
-    color: #55d6be;
+    color: #62d8c4;
     font-family: 'DM Mono', monospace;
-    font-size: 0.72rem;
-    letter-spacing: 0.08em;
+    font-size: 0.69rem;
+    letter-spacing: 0.09em;
 }
 
 .status-dot {
@@ -101,45 +200,51 @@ h3 {
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background: #55d6be;
+    background: #62d8c4;
+    box-shadow: 0 0 12px rgba(98,216,196,0.65);
     margin-right: 7px;
 }
 
-/* main title */
 
-.main-title {
-    font-size: 2.45rem;
-    font-weight: 700;
-    letter-spacing: -0.05em;
-    margin-bottom: 0.15rem;
-}
-
-.main-subtitle {
-    color: #82909e;
-    font-size: 0.9rem;
-}
-
-/* horizontal line */
+/* ============================================================
+   LINES
+   ============================================================ */
 
 .rule {
     height: 1px;
-    background: #202d39;
+    background:
+        linear-gradient(
+            90deg,
+            transparent,
+            #254554,
+            transparent
+        );
     margin: 1.4rem 0;
 }
 
-/* metric blocks */
+
+/* ============================================================
+   METRICS
+   ============================================================ */
 
 .metric-box {
-    background: #101922;
-    border: 1px solid #202d39;
-    padding: 1.05rem 1.15rem;
+    background:
+        linear-gradient(
+            145deg,
+            rgba(18, 35, 45, 0.92),
+            rgba(10, 23, 31, 0.95)
+        );
+    border: 1px solid #1f3947;
+    padding: 1rem 1.15rem;
     min-height: 105px;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.025);
 }
 
 .metric-label {
-    color: #718191;
+    color: #6d8997;
     font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
+    font-size: 0.62rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
 }
@@ -148,20 +253,31 @@ h3 {
     font-size: 1.65rem;
     font-weight: 600;
     margin-top: 0.35rem;
+    color: #dcecef;
 }
 
 .metric-note {
-    color: #718191;
-    font-size: 0.72rem;
+    color: #637b88;
+    font-size: 0.7rem;
     margin-top: 0.2rem;
 }
 
-/* panels */
+
+/* ============================================================
+   PANELS
+   ============================================================ */
 
 .panel {
-    background: #0f1821;
-    border: 1px solid #202d39;
+    background:
+        linear-gradient(
+            145deg,
+            rgba(13, 29, 38, 0.94),
+            rgba(9, 20, 28, 0.96)
+        );
+    border: 1px solid #1d3542;
     padding: 1.15rem;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.02);
 }
 
 .panel-header {
@@ -172,31 +288,97 @@ h3 {
 }
 
 .panel-title {
-    font-size: 0.82rem;
+    font-size: 0.8rem;
     font-weight: 600;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.035em;
 }
 
 .panel-code {
-    color: #667685;
+    color: #536d7a;
     font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
+    font-size: 0.62rem;
 }
 
-/* vessel rows */
+
+/* ============================================================
+   RECOMMENDATION
+   ============================================================ */
+
+.recommendation {
+    border-left: 3px solid #62d8c4;
+    background:
+        linear-gradient(
+            90deg,
+            rgba(45, 130, 133, 0.12),
+            rgba(10, 27, 33, 0.4)
+        );
+    padding: 1rem 1.1rem;
+}
+
+.recommendation-title {
+    color: #62d8c4;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.63rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.recommendation-main {
+    font-size: 1.18rem;
+    font-weight: 600;
+    margin-top: 0.3rem;
+}
+
+.recommendation-text {
+    color: #8196a1;
+    font-size: 0.76rem;
+    line-height: 1.55;
+    margin-top: 0.35rem;
+}
+
+
+/* ============================================================
+   ALERTS
+   ============================================================ */
+
+.alert-danger {
+    border-left: 3px solid #d86c78;
+    background: rgba(72, 24, 31, 0.28);
+    padding: 0.9rem 1rem;
+    color: #d8b9bd;
+}
+
+.alert-warning {
+    border-left: 3px solid #d6b66c;
+    background: rgba(73, 58, 25, 0.25);
+    padding: 0.9rem 1rem;
+    color: #cfc19c;
+}
+
+.alert-good {
+    border-left: 3px solid #62d8c4;
+    background: rgba(24, 70, 65, 0.20);
+    padding: 0.9rem 1rem;
+    color: #a9d8d0;
+}
+
+
+/* ============================================================
+   VESSEL ROWS
+   ============================================================ */
 
 .vessel-row {
     display: grid;
     grid-template-columns: 42px 1fr 100px 90px;
     align-items: center;
-    border-top: 1px solid #1d2934;
+    border-top: 1px solid #19303c;
     padding: 0.75rem 0;
 }
 
 .vessel-rank {
     font-family: 'DM Mono', monospace;
-    color: #5e7180;
-    font-size: 0.72rem;
+    color: #4e6875;
+    font-size: 0.7rem;
 }
 
 .vessel-name {
@@ -205,120 +387,95 @@ h3 {
 }
 
 .vessel-type {
-    color: #718191;
-    font-size: 0.68rem;
+    color: #667f8b;
+    font-size: 0.67rem;
     margin-top: 0.12rem;
 }
 
 .vessel-number {
     font-family: 'DM Mono', monospace;
-    font-size: 0.72rem;
-    color: #b5c0ca;
+    font-size: 0.7rem;
+    color: #a9bac3;
     text-align: right;
 }
 
 .priority-high {
-    color: #55d6be;
+    color: #62d8c4;
 }
 
 .priority-medium {
-    color: #d8b76a;
+    color: #d6b66c;
 }
 
 .priority-low {
-    color: #718191;
+    color: #6d808b;
 }
 
-/* recommendation */
 
-.recommendation {
-    border-left: 3px solid #55d6be;
-    background: #101d22;
-    padding: 1rem 1.1rem;
-}
-
-.recommendation-title {
-    color: #55d6be;
-    font-family: 'DM Mono', monospace;
-    font-size: 0.66rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-}
-
-.recommendation-main {
-    font-size: 1.15rem;
-    font-weight: 600;
-    margin-top: 0.3rem;
-}
-
-.recommendation-text {
-    color: #8795a3;
-    font-size: 0.78rem;
-    line-height: 1.55;
-    margin-top: 0.35rem;
-}
-
-/* alerts */
-
-.alert-danger {
-    border-left: 3px solid #e06c75;
-    background: #1b1518;
-    padding: 0.9rem 1rem;
-}
-
-.alert-warning {
-    border-left: 3px solid #d8b76a;
-    background: #1b1913;
-    padding: 0.9rem 1rem;
-}
-
-.alert-good {
-    border-left: 3px solid #55d6be;
-    background: #101d1d;
-    padding: 0.9rem 1rem;
-}
-
-/* buttons */
+/* ============================================================
+   BUTTONS
+   ============================================================ */
 
 .stButton > button {
     border-radius: 2px;
-    border: 1px solid #314150;
-    background: #111c25;
-    color: #dce4ea;
-    font-family: 'Inter', sans-serif;
+    border: 1px solid #2b4a59;
+    background: #10232d;
+    color: #d7e4e8;
     font-weight: 500;
+    transition: all 0.2s ease;
 }
 
 .stButton > button:hover {
-    border-color: #55d6be;
-    color: #55d6be;
+    border-color: #62d8c4;
+    color: #62d8c4;
+    background: #122c35;
 }
 
-/* tabs */
+
+/* ============================================================
+   TABS
+   ============================================================ */
 
 button[data-baseweb="tab"] {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     font-weight: 500;
+    color: #708792;
 }
 
 button[data-baseweb="tab"][aria-selected="true"] {
-    color: #55d6be;
+    color: #62d8c4;
 }
 
-/* dataframe */
 
-[data-testid="stDataFrame"] {
-    border: 1px solid #202d39;
+/* ============================================================
+   INPUTS
+   ============================================================ */
+
+div[data-baseweb="select"] > div {
+    background: #0d1d26;
+    border-color: #274352;
 }
 
-/* footer */
+.stSlider label,
+.stNumberInput label,
+.stSelectbox label,
+.stTextArea label {
+    color: #7d939e !important;
+    font-size: 0.72rem !important;
+}
+
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
 
 .footer {
-    color: #53616e;
+    color: #49616c;
     font-family: 'DM Mono', monospace;
-    font-size: 0.62rem;
+    font-size: 0.59rem;
     letter-spacing: 0.05em;
-    margin-top: 2rem;
+    line-height: 1.7;
+    margin-top: 1.5rem;
 }
 
 </style>
@@ -473,36 +630,32 @@ vessels = pd.DataFrame([
 
 
 # ============================================================
-# SIDEBAR — CONTROL PARAMETERS
+# SIDEBAR
 # ============================================================
 
 st.sidebar.markdown(
-    '<div class="tech-label">CONTROL PARAMETERS</div>',
+    '<div class="tech-label">ENVIRONMENTAL CONDITIONS</div>',
     unsafe_allow_html=True
 )
 
 wind = st.sidebar.slider(
     "Wind speed",
-    5, 55, 28,
-    help="Current wind speed in knots."
+    5, 55, 28
 )
 
 waves = st.sidebar.slider(
     "Wave height",
-    0.5, 8.0, 4.2, 0.1,
-    help="Significant wave height in metres."
+    0.5, 8.0, 4.2, 0.1
 )
 
 visibility = st.sidebar.slider(
     "Visibility",
-    0.2, 15.0, 1.8, 0.1,
-    help="Horizontal visibility in kilometres."
+    0.2, 15.0, 1.8, 0.1
 )
 
 deterioration = st.sidebar.slider(
     "Weather deterioration",
-    10, 180, 35,
-    help="Estimated minutes until severe deterioration."
+    10, 180, 35
 )
 
 st.sidebar.markdown("---")
@@ -581,7 +734,7 @@ weight_sum = (
 
 
 # ============================================================
-# MODELS
+# WEATHER MODEL
 # ============================================================
 
 def weather_risk(wind, waves, visibility):
@@ -672,7 +825,7 @@ vessels["WaitingScore"] = normalize(
 
 
 # ============================================================
-# SAFETY
+# SAFETY FILTER
 # ============================================================
 
 vessels["SafeNow"] = vessels.apply(
@@ -845,6 +998,7 @@ def sequence_cost(sequence, data):
         ].iloc[0]
 
         start = current_time
+
         finish = (
             current_time +
             row["Service"]
@@ -926,89 +1080,159 @@ optimization = optimize(
 
 st.markdown(
     """
-    <div style="display:flex; justify-content:space-between;
-                align-items:flex-end;">
-        <div>
-            <div class="tech-label">PORT OPERATIONS / DECISION SUPPORT</div>
-            <div class="main-title">PORT PRIORITY</div>
-            <div class="main-subtitle">
-                Vessel sequencing under weather uncertainty and limited resources
+    <div class="marine-header">
+
+        <div class="header-grid">
+
+            <div>
+                <div class="tech-label">
+                    MARITIME OPERATIONS / DECISION SUPPORT
+                </div>
+
+                <div class="main-title">
+                    PORT PRIORITY
+                </div>
+
+                <div class="main-subtitle">
+                    Vessel sequencing under weather uncertainty
+                    and limited port resources
+                </div>
             </div>
+
+            <div class="system-status">
+                <div class="status-live">
+                    <span class="status-dot"></span>
+                    SYSTEM ONLINE
+                </div>
+
+                <div class="tech-label" style="margin-top:8px;">
+                    LIVE SIMULATION
+                </div>
+            </div>
+
         </div>
-        <div class="status-live">
-            <span class="status-dot"></span>SYSTEM ONLINE
-        </div>
+
     </div>
     """,
     unsafe_allow_html=True
 )
 
-st.markdown('<div class="rule"></div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="rule"></div>',
+    unsafe_allow_html=True
+)
 
 
 # ============================================================
-# TOP STATUS BAR
+# STATUS METRICS
 # ============================================================
 
 c1, c2, c3, c4, c5 = st.columns(5)
 
 with c1:
+
     st.markdown(
         f"""
         <div class="metric-box">
-            <div class="metric-label">Weather risk</div>
-            <div class="metric-value">{current_risk:.0f}</div>
-            <div class="metric-note">{risk_label}</div>
+            <div class="metric-label">
+                Weather risk
+            </div>
+
+            <div class="metric-value">
+                {current_risk:.0f}
+            </div>
+
+            <div class="metric-note">
+                {risk_label}
+            </div>
         </div>
         """,
         unsafe_allow_html=True
     )
 
 with c2:
-    safe_count = int(vessels["Eligible"].sum())
+
+    safe_count = int(
+        vessels["Eligible"].sum()
+    )
 
     st.markdown(
         f"""
         <div class="metric-box">
-            <div class="metric-label">Safe vessels</div>
-            <div class="metric-value">{safe_count}/{len(vessels)}</div>
-            <div class="metric-note">currently eligible</div>
+            <div class="metric-label">
+                Safe vessels
+            </div>
+
+            <div class="metric-value">
+                {safe_count}/{len(vessels)}
+            </div>
+
+            <div class="metric-note">
+                currently eligible
+            </div>
         </div>
         """,
         unsafe_allow_html=True
     )
 
 with c3:
+
     st.markdown(
         f"""
         <div class="metric-box">
-            <div class="metric-label">Berths</div>
-            <div class="metric-value">{berths}</div>
-            <div class="metric-note">available</div>
+            <div class="metric-label">
+                Berths
+            </div>
+
+            <div class="metric-value">
+                {berths}
+            </div>
+
+            <div class="metric-note">
+                available
+            </div>
         </div>
         """,
         unsafe_allow_html=True
     )
 
 with c4:
+
     st.markdown(
         f"""
         <div class="metric-box">
-            <div class="metric-label">Tugboats</div>
-            <div class="metric-value">{tugs}</div>
-            <div class="metric-note">available</div>
+            <div class="metric-label">
+                Tugboats
+            </div>
+
+            <div class="metric-value">
+                {tugs}
+            </div>
+
+            <div class="metric-note">
+                available
+            </div>
         </div>
         """,
         unsafe_allow_html=True
     )
 
 with c5:
+
     st.markdown(
         f"""
         <div class="metric-box">
-            <div class="metric-label">Weather window</div>
-            <div class="metric-value">{deterioration}</div>
-            <div class="metric-note">minutes</div>
+            <div class="metric-label">
+                Weather window
+            </div>
+
+            <div class="metric-value">
+                {deterioration}
+            </div>
+
+            <div class="metric-note">
+                minutes
+            </div>
         </div>
         """,
         unsafe_allow_html=True
@@ -1019,7 +1243,7 @@ st.markdown("<br>", unsafe_allow_html=True)
 
 
 # ============================================================
-# WEATHER ALERT
+# WEATHER STATUS
 # ============================================================
 
 if current_risk >= 80:
@@ -1028,8 +1252,8 @@ if current_risk >= 80:
         f"""
         <div class="alert-danger">
             <strong>CRITICAL WEATHER CONDITION</strong><br>
-            Current environmental risk is {current_risk}/100.
-            The system is applying the strict safety filter.
+            Environmental risk index: {current_risk}/100.
+            The safety filter is restricting eligible vessels.
         </div>
         """,
         unsafe_allow_html=True
@@ -1041,7 +1265,7 @@ elif current_risk >= 60:
         f"""
         <div class="alert-warning">
             <strong>HIGH WEATHER RISK</strong><br>
-            Risk index {current_risk}/100.
+            Environmental risk index: {current_risk}/100.
             The available operating window is narrowing.
         </div>
         """,
@@ -1054,7 +1278,7 @@ else:
         f"""
         <div class="alert-good">
             <strong>OPERATING CONDITIONS MANAGEABLE</strong><br>
-            Environmental risk is {current_risk}/100.
+            Environmental risk index: {current_risk}/100.
         </div>
         """,
         unsafe_allow_html=True
@@ -1068,20 +1292,34 @@ st.markdown("<br>", unsafe_allow_html=True)
 # PORT MAP
 # ============================================================
 
-def build_port_map(data, result):
+def build_port_map(data):
 
     fig = go.Figure()
 
-    # water area
+    # water
     fig.add_shape(
         type="rect",
         x0=0,
         y0=0,
         x1=100,
-        y1=65,
-        fillcolor="#0c2534",
+        y1=67,
+        fillcolor="#0b2635",
         line=dict(
-            color="#18394d",
+            color="#174052",
+            width=1
+        )
+    )
+
+    # harbour basin
+    fig.add_shape(
+        type="rect",
+        x0=27,
+        y0=15,
+        x1=78,
+        y1=62,
+        fillcolor="#0d2d3d",
+        line=dict(
+            color="#1d5268",
             width=1
         )
     )
@@ -1090,41 +1328,40 @@ def build_port_map(data, result):
     fig.add_shape(
         type="rect",
         x0=0,
-        y0=65,
+        y0=67,
         x1=100,
         y1=100,
-        fillcolor="#111920",
+        fillcolor="#10191f",
         line=dict(
-            color="#202d39",
+            color="#20323c",
             width=1
         )
     )
 
-    # entrance channel
+    # navigation channel
     fig.add_shape(
-        type="rect",
-        x0=42,
-        y0=0,
-        x1=58,
-        y1=65,
-        fillcolor="#103044",
+        type="path",
+        path="M 48 0 L 43 15 L 45 62 L 39 67 L 61 67 L 55 62 L 57 15 L 52 0 Z",
+        fillcolor="#10374a",
         line=dict(
-            color="#1d4c64",
+            color="#1c566c",
             width=1
         )
     )
 
-    # berths
+    # berth positions
     berth_positions = [
-        (15, 66),
-        (42, 66),
-        (69, 66),
-        (15, 82),
-        (42, 82),
-        (69, 82)
+        (10, 70),
+        (37, 70),
+        (64, 70),
+        (10, 84),
+        (37, 84),
+        (64, 84)
     ]
 
-    for i in range(min(int(berths), 6)):
+    for i in range(
+        min(int(berths), 6)
+    ):
 
         x, y = berth_positions[i]
 
@@ -1132,22 +1369,22 @@ def build_port_map(data, result):
             type="rect",
             x0=x,
             y0=y,
-            x1=x + 18,
-            y1=y + 8,
-            fillcolor="#17232c",
+            x1=x + 20,
+            y1=y + 7,
+            fillcolor="#16252e",
             line=dict(
-                color="#426070",
+                color="#45606c",
                 width=1
             )
         )
 
         fig.add_annotation(
-            x=x + 9,
-            y=y + 4,
+            x=x + 10,
+            y=y + 3.5,
             text=f"BERTH {i+1}",
             showarrow=False,
             font=dict(
-                color="#8395a3",
+                color="#8096a2",
                 size=9
             )
         )
@@ -1160,33 +1397,35 @@ def build_port_map(data, result):
         ascending=False
     )
 
-    coords = [
-        (25, 18),
-        (70, 28),
-        (30, 40),
-        (73, 50),
-        (55, 14),
-        (18, 52),
-        (83, 43),
-        (45, 30)
+    coordinates = [
+        (20, 20),
+        (73, 27),
+        (28, 40),
+        (76, 48),
+        (52, 18),
+        (15, 51),
+        (86, 42),
+        (45, 34)
     ]
 
     for idx, (_, row) in enumerate(
         eligible.iterrows()
     ):
 
-        x, y = coords[
-            idx % len(coords)
+        x, y = coordinates[
+            idx % len(coordinates)
         ]
 
         priority = row["Priority"]
 
         if priority >= 70:
-            marker_color = "#55d6be"
+            marker_color = "#62d8c4"
+
         elif priority >= 45:
-            marker_color = "#d8b76a"
+            marker_color = "#d6b66c"
+
         else:
-            marker_color = "#6d7e8c"
+            marker_color = "#738692"
 
         fig.add_trace(
             go.Scatter(
@@ -1194,17 +1433,17 @@ def build_port_map(data, result):
                 y=[y],
                 mode="markers+text",
                 marker=dict(
-                    size=14,
+                    size=13,
                     color=marker_color,
                     line=dict(
-                        color="#dce5ea",
+                        color="#dce9ed",
                         width=1
                     )
                 ),
                 text=[row["Vessel"]],
                 textposition="top center",
                 textfont=dict(
-                    color="#dbe4e9",
+                    color="#cddbe0",
                     size=9
                 ),
                 hovertemplate=(
@@ -1217,7 +1456,6 @@ def build_port_map(data, result):
             )
         )
 
-    # north arrow
     fig.add_annotation(
         x=94,
         y=92,
@@ -1227,7 +1465,7 @@ def build_port_map(data, result):
         ax=0,
         ay=20,
         font=dict(
-            color="#8ea0ae",
+            color="#8da2ad",
             size=10
         )
     )
@@ -1251,12 +1489,12 @@ def build_port_map(data, result):
             t=0,
             b=0
         ),
-        paper_bgcolor="#0f1821",
-        plot_bgcolor="#0f1821",
+        paper_bgcolor="#0d1d26",
+        plot_bgcolor="#0d1d26",
         hoverlabel=dict(
-            bgcolor="#101922",
-            bordercolor="#314150",
-            font_color="#e8edf2"
+            bgcolor="#10232d",
+            bordercolor="#34515f",
+            font_color="#e7f0f3"
         )
     )
 
@@ -1270,7 +1508,7 @@ left, right = st.columns(
 
 
 # ============================================================
-# LEFT — MAP
+# MAP
 # ============================================================
 
 with left:
@@ -1278,21 +1516,24 @@ with left:
     st.markdown(
         """
         <div class="panel">
+
             <div class="panel-header">
-                <div class="panel-title">PORT OPERATIONS MAP</div>
-                <div class="panel-code">LIVE / SCHEMATIC</div>
+
+                <div class="panel-title">
+                    PORT OPERATIONS MAP
+                </div>
+
+                <div class="panel-code">
+                    LIVE / SCHEMATIC
+                </div>
+
             </div>
         """,
         unsafe_allow_html=True
     )
 
-    fig = build_port_map(
-        vessels,
-        optimization
-    )
-
     st.plotly_chart(
-        fig,
+        build_port_map(vessels),
         use_container_width=True,
         config={
             "displayModeBar": False
@@ -1304,15 +1545,27 @@ with left:
         <div style="
             display:flex;
             gap:1.4rem;
-            color:#667685;
+            color:#637b87;
             font-family:'DM Mono',monospace;
-            font-size:0.62rem;
+            font-size:0.61rem;
             padding-top:0.2rem;
         ">
-            <span><span style="color:#55d6be;">●</span> HIGH PRIORITY</span>
-            <span><span style="color:#d8b76a;">●</span> MEDIUM</span>
-            <span><span style="color:#6d7e8c;">●</span> LOW</span>
+            <span>
+                <span style="color:#62d8c4;">●</span>
+                HIGH PRIORITY
+            </span>
+
+            <span>
+                <span style="color:#d6b66c;">●</span>
+                MEDIUM
+            </span>
+
+            <span>
+                <span style="color:#738692;">●</span>
+                LOW
+            </span>
         </div>
+
         </div>
         """,
         unsafe_allow_html=True
@@ -1320,7 +1573,7 @@ with left:
 
 
 # ============================================================
-# RIGHT — SYSTEM RECOMMENDATION
+# SYSTEM RECOMMENDATION
 # ============================================================
 
 with right:
@@ -1328,9 +1581,17 @@ with right:
     st.markdown(
         """
         <div class="panel">
+
             <div class="panel-header">
-                <div class="panel-title">SYSTEM RECOMMENDATION</div>
-                <div class="panel-code">OPT-01</div>
+
+                <div class="panel-title">
+                    SYSTEM RECOMMENDATION
+                </div>
+
+                <div class="panel-code">
+                    OPT-01
+                </div>
+
             </div>
         """,
         unsafe_allow_html=True
@@ -1344,45 +1605,52 @@ with right:
             vessels["Vessel"] == first
         ].iloc[0]
 
-        reason_parts = []
+        reasons = []
 
         if first_row["Medical"]:
-            reason_parts.append(
+            reasons.append(
                 "medical priority"
             )
 
         if first_row["Passengers"] > 0:
-            reason_parts.append(
+            reasons.append(
                 f"{int(first_row['Passengers']):,} passengers"
             )
 
         if first_row["WeatherWindow"] >= 60:
-            reason_parts.append(
+            reasons.append(
                 "limited weather window"
             )
 
         if first_row["Waiting"] >= 4:
-            reason_parts.append(
+            reasons.append(
                 "extended waiting time"
             )
 
         reason = ", ".join(
-            reason_parts
+            reasons
         )
 
         st.markdown(
             f"""
             <div class="recommendation">
+
                 <div class="recommendation-title">
                     Recommended first movement
                 </div>
+
                 <div class="recommendation-main">
                     {first}
                 </div>
+
                 <div class="recommendation-text">
                     {first_row["Type"]}.
-                    {reason.capitalize() if reason else "Best current position in the optimized sequence."}.
+                    {reason.capitalize()
+                    if reason
+                    else
+                    "Highest current position in the optimized sequence."}.
                 </div>
+
             </div>
             """,
             unsafe_allow_html=True
@@ -1391,7 +1659,7 @@ with right:
         st.markdown("<br>", unsafe_allow_html=True)
 
         st.markdown(
-            '<div class="tech-label">SEQUENCE</div>',
+            '<div class="tech-label">OPTIMIZED SEQUENCE</div>',
             unsafe_allow_html=True
         )
 
@@ -1408,25 +1676,41 @@ with right:
 
             if priority >= 70:
                 cls = "priority-high"
+
             elif priority >= 45:
                 cls = "priority-medium"
+
             else:
                 cls = "priority-low"
 
             st.markdown(
                 f"""
                 <div class="vessel-row">
-                    <div class="vessel-rank">0{i}</div>
-                    <div>
-                        <div class="vessel-name">{name}</div>
-                        <div class="vessel-type">{row["Type"]}</div>
+
+                    <div class="vessel-rank">
+                        0{i}
                     </div>
+
+                    <div>
+
+                        <div class="vessel-name">
+                            {name}
+                        </div>
+
+                        <div class="vessel-type">
+                            {row["Type"]}
+                        </div>
+
+                    </div>
+
                     <div class="vessel-number">
                         +{row["Service"]} min
                     </div>
+
                     <div class="vessel-number {cls}">
                         {priority:.0f}
                     </div>
+
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -1437,8 +1721,16 @@ with right:
         st.markdown(
             """
             <div class="alert-danger">
-                No eligible vessel.
-                Current conditions exceed the available operating envelope.
+
+                <strong>
+                    NO ELIGIBLE VESSEL
+                </strong>
+
+                <br>
+
+                Current conditions exceed
+                the simulated safety envelope.
+
             </div>
             """,
             unsafe_allow_html=True
@@ -1451,7 +1743,7 @@ with right:
 
 
 # ============================================================
-# MAIN TABS
+# TABS
 # ============================================================
 
 st.markdown("<br>", unsafe_allow_html=True)
@@ -1465,7 +1757,7 @@ tab1, tab2, tab3, tab4 = st.tabs([
 
 
 # ============================================================
-# TAB 1 — QUEUE
+# TAB 1
 # ============================================================
 
 with tab1:
@@ -1473,9 +1765,17 @@ with tab1:
     st.markdown(
         """
         <div class="panel">
+
             <div class="panel-header">
-                <div class="panel-title">CURRENT VESSEL QUEUE</div>
-                <div class="panel-code">8 OBJECTS</div>
+
+                <div class="panel-title">
+                    CURRENT VESSEL QUEUE
+                </div>
+
+                <div class="panel-code">
+                    8 OBJECTS
+                </div>
+
             </div>
         """,
         unsafe_allow_html=True
@@ -1513,24 +1813,30 @@ with tab1:
         use_container_width=True,
         hide_index=True,
         column_config={
-            "Priority": st.column_config.ProgressColumn(
-                "Priority",
-                min_value=0,
-                max_value=100,
-                format="%.0f"
-            ),
-            "Economic exposure": st.column_config.NumberColumn(
-                "Economic exposure",
-                format="%.2f"
-            )
+            "Priority":
+                st.column_config.ProgressColumn(
+                    "Priority",
+                    min_value=0,
+                    max_value=100,
+                    format="%.0f"
+                ),
+
+            "Economic exposure":
+                st.column_config.NumberColumn(
+                    "Economic exposure",
+                    format="%.2f"
+                )
         }
     )
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown(
+        "</div>",
+        unsafe_allow_html=True
+    )
 
 
 # ============================================================
-# TAB 2 — RATIONALE
+# TAB 2
 # ============================================================
 
 with tab2:
@@ -1538,9 +1844,17 @@ with tab2:
     st.markdown(
         """
         <div class="panel">
+
             <div class="panel-header">
-                <div class="panel-title">DECISION RATIONALE</div>
-                <div class="panel-code">MODEL EXPLANATION</div>
+
+                <div class="panel-title">
+                    DECISION RATIONALE
+                </div>
+
+                <div class="panel-code">
+                    MODEL EXPLANATION
+                </div>
+
             </div>
         """,
         unsafe_allow_html=True
@@ -1571,8 +1885,12 @@ with tab2:
                     "Waiting",
                     "Weather window"
                 ],
+
                 "Value": [
-                    100 if row["SafeNow"] else 0,
+                    100
+                    if row["SafeNow"]
+                    else 0,
+
                     row["PassengerScore"],
                     row["Cargo"],
                     row["EconomicScore"],
@@ -1586,7 +1904,7 @@ with tab2:
                     x=factors["Value"],
                     y=factors["Factor"],
                     orientation="h",
-                    marker_color="#55d6be"
+                    marker_color="#62d8c4"
                 )
             )
 
@@ -1598,14 +1916,14 @@ with tab2:
                     t=10,
                     b=10
                 ),
-                paper_bgcolor="#0f1821",
-                plot_bgcolor="#0f1821",
+                paper_bgcolor="#0d1d26",
+                plot_bgcolor="#0d1d26",
                 font=dict(
-                    color="#9aa8b4"
+                    color="#9aaeb7"
                 ),
                 xaxis=dict(
                     range=[0, 100],
-                    gridcolor="#1e2b35"
+                    gridcolor="#1d3440"
                 ),
                 yaxis=dict(
                     gridcolor="rgba(0,0,0,0)"
@@ -1623,7 +1941,9 @@ with tab2:
         with col2:
 
             st.markdown(
-                '<div class="tech-label">MODEL INTERPRETATION</div>',
+                '<div class="tech-label">'
+                'MODEL INTERPRETATION'
+                '</div>',
                 unsafe_allow_html=True
             )
 
@@ -1670,9 +1990,9 @@ with tab2:
                     f"""
                     <div style="
                         padding:0.7rem 0;
-                        border-bottom:1px solid #1d2934;
-                        color:#aab6c0;
-                        font-size:0.78rem;
+                        border-bottom:1px solid #19303c;
+                        color:#aab9c1;
+                        font-size:0.76rem;
                     ">
                         {reason}
                     </div>
@@ -1680,7 +2000,10 @@ with tab2:
                     unsafe_allow_html=True
                 )
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown(
+        "</div>",
+        unsafe_allow_html=True
+    )
 
 
 # ============================================================
@@ -1692,9 +2015,17 @@ with tab3:
     st.markdown(
         """
         <div class="panel">
+
             <div class="panel-header">
-                <div class="panel-title">SCENARIO LABORATORY</div>
-                <div class="panel-code">WHAT-IF ANALYSIS</div>
+
+                <div class="panel-title">
+                    SCENARIO LABORATORY
+                </div>
+
+                <div class="panel-code">
+                    WHAT-IF ANALYSIS
+                </div>
+
             </div>
         """,
         unsafe_allow_html=True
@@ -1703,6 +2034,7 @@ with tab3:
     s1, s2, s3 = st.columns(3)
 
     with s1:
+
         scenario_wind = st.slider(
             "Scenario wind",
             5,
@@ -1712,6 +2044,7 @@ with tab3:
         )
 
     with s2:
+
         scenario_waves = st.slider(
             "Scenario wave height",
             0.5,
@@ -1722,6 +2055,7 @@ with tab3:
         )
 
     with s3:
+
         scenario_time = st.slider(
             "Deterioration in",
             10,
@@ -1739,11 +2073,19 @@ with tab3:
     st.markdown(
         f"""
         <div class="metric-box">
-            <div class="metric-label">Scenario risk</div>
-            <div class="metric-value">{scenario_risk:.0f}</div>
+
+            <div class="metric-label">
+                Scenario risk
+            </div>
+
+            <div class="metric-value">
+                {scenario_risk:.0f}
+            </div>
+
             <div class="metric-note">
                 {weather_label(scenario_risk)}
             </div>
+
         </div>
         """,
         unsafe_allow_html=True
@@ -1763,24 +2105,33 @@ with tab3:
     scenario["ScenarioPriority"] = scenario.apply(
         lambda row: (
             (
-                (100 if row["Eligible"] else 0) *
-                safety_weight
+                (100 if row["Eligible"] else 0)
+                * safety_weight
+
                 +
-                row["PassengerScore"] *
-                passenger_weight
+
+                row["PassengerScore"]
+                * passenger_weight
+
                 +
-                row["Cargo"] *
-                cargo_weight
+
+                row["Cargo"]
+                * cargo_weight
+
                 +
-                row["EconomicScore"] *
-                economic_weight
+
+                row["EconomicScore"]
+                * economic_weight
+
                 +
-                row["WaitingScore"] *
-                waiting_weight
+
+                row["WaitingScore"]
+                * waiting_weight
             )
             /
             weight_sum
-            if weight_sum else 0
+            if weight_sum
+            else 0
         ),
         axis=1
     )
@@ -1797,8 +2148,16 @@ with tab3:
         st.markdown(
             """
             <div class="alert-danger">
-                No vessel satisfies the scenario constraints.
-                Port access should remain restricted.
+
+                <strong>
+                    NO ELIGIBLE VESSEL
+                </strong>
+
+                <br>
+
+                No vessel satisfies
+                the scenario constraints.
+
             </div>
             """,
             unsafe_allow_html=True
@@ -1807,7 +2166,9 @@ with tab3:
     else:
 
         st.markdown(
-            '<div class="tech-label">SCENARIO SEQUENCE</div>',
+            '<div class="tech-label">'
+            'SCENARIO SEQUENCE'
+            '</div>',
             unsafe_allow_html=True
         )
 
@@ -1819,23 +2180,40 @@ with tab3:
             st.markdown(
                 f"""
                 <div class="vessel-row">
-                    <div class="vessel-rank">0{i}</div>
-                    <div>
-                        <div class="vessel-name">{row["Vessel"]}</div>
-                        <div class="vessel-type">{row["Type"]}</div>
+
+                    <div class="vessel-rank">
+                        0{i}
                     </div>
+
+                    <div>
+
+                        <div class="vessel-name">
+                            {row["Vessel"]}
+                        </div>
+
+                        <div class="vessel-type">
+                            {row["Type"]}
+                        </div>
+
+                    </div>
+
                     <div class="vessel-number">
                         {row["Service"]} min
                     </div>
+
                     <div class="vessel-number">
                         {row["ScenarioPriority"]:.0f}
                     </div>
+
                 </div>
                 """,
                 unsafe_allow_html=True
             )
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown(
+        "</div>",
+        unsafe_allow_html=True
+    )
 
 
 # ============================================================
@@ -1847,17 +2225,26 @@ with tab4:
     st.markdown(
         """
         <div class="panel">
+
             <div class="panel-header">
-                <div class="panel-title">HUMAN OVERRIDE</div>
-                <div class="panel-code">OPERATOR DECISION</div>
+
+                <div class="panel-title">
+                    HUMAN OVERRIDE
+                </div>
+
+                <div class="panel-code">
+                    OPERATOR DECISION
+                </div>
+
             </div>
         """,
         unsafe_allow_html=True
     )
 
     st.write(
-        "The model provides a recommendation. The operator retains "
-        "authority to override it when new information is available."
+        "The model provides a recommendation. "
+        "The operator retains authority to override it "
+        "when new information is available."
     )
 
     if optimization:
@@ -1909,10 +2296,13 @@ with tab4:
                         datetime.now().strftime(
                             "%Y-%m-%d %H:%M"
                         ),
+
                     "Vessel":
                         override_vessel,
+
                     "Decision":
                         "Moved to priority #1",
+
                     "Rationale":
                         override_reason
                 })
@@ -1924,7 +2314,9 @@ with tab4:
         if st.session_state.override_sequence:
 
             st.markdown(
-                '<div class="tech-label">REVISED SEQUENCE</div>',
+                '<div class="tech-label">'
+                'REVISED SEQUENCE'
+                '</div>',
                 unsafe_allow_html=True
             )
 
@@ -1936,36 +2328,59 @@ with tab4:
                 st.markdown(
                     f"""
                     <div class="vessel-row">
-                        <div class="vessel-rank">0{i}</div>
-                        <div>
-                            <div class="vessel-name">{name}</div>
+
+                        <div class="vessel-rank">
+                            0{i}
                         </div>
+
+                        <div>
+                            <div class="vessel-name">
+                                {name}
+                            </div>
+                        </div>
+
                         <div></div>
+
                         <div class="vessel-number">
                             POSITION {i}
                         </div>
+
                     </div>
                     """,
                     unsafe_allow_html=True
                 )
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown(
+        "</div>",
+        unsafe_allow_html=True
+    )
 
 
 # ============================================================
-# DECISION LOG
+# DECISION AUDIT TRAIL
 # ============================================================
 
 if st.session_state.decision_log:
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown(
+        "<br>",
+        unsafe_allow_html=True
+    )
 
     st.markdown(
         """
         <div class="panel">
+
             <div class="panel-header">
-                <div class="panel-title">DECISION AUDIT TRAIL</div>
-                <div class="panel-code">SESSION HISTORY</div>
+
+                <div class="panel-title">
+                    DECISION AUDIT TRAIL
+                </div>
+
+                <div class="panel-code">
+                    SESSION HISTORY
+                </div>
+
             </div>
         """,
         unsafe_allow_html=True
@@ -1981,56 +2396,10 @@ if st.session_state.decision_log:
         hide_index=True
     )
 
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
-# ============================================================
-# METHODOLOGY
-# ============================================================
-
-st.markdown("<br>", unsafe_allow_html=True)
-
-st.markdown(
-    '<div class="panel">',
-    unsafe_allow_html=True
-)
-
-st.markdown(
-    '<div class="panel-header">'
-    '<div class="panel-title">SYSTEM METHODOLOGY</div>'
-    '<div class="panel-code">MODEL 3.0</div>'
-    '</div>',
-    unsafe_allow_html=True
-)
-
-st.markdown(
-    """
-    <div style="
-        color:#8795a3;
-        font-size:0.78rem;
-        line-height:1.7;
-    ">
-        The system evaluates vessel sequences rather than isolated
-        priority scores. Each candidate sequence is assessed against
-        weather constraints, resource availability, waiting time,
-        passenger exposure, cargo criticality and estimated economic
-        consequences.
-
-        <br><br>
-
-        The optimization layer identifies the sequence with the lowest
-        estimated aggregate operational cost. The human override layer
-        intentionally preserves operator authority when information
-        exists outside the model.
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-st.markdown(
-    '</div>',
-    unsafe_allow_html=True
-)
+    st.markdown(
+        "</div>",
+        unsafe_allow_html=True
+    )
 
 
 # ============================================================
@@ -2040,7 +2409,8 @@ st.markdown(
 st.markdown(
     """
     <div class="footer">
-        PORT PRIORITY / OPERATIONAL DECISION SUPPORT SYSTEM / ACADEMIC PROTOTYPE
+        PORT PRIORITY / MARITIME OPERATIONS DECISION SUPPORT SYSTEM
+        / ACADEMIC PROTOTYPE
         <br>
         NOT FOR REAL-WORLD NAVIGATION OR PORT SAFETY OPERATIONS
     </div>
