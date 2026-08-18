@@ -1991,33 +1991,44 @@ if st.session_state.decision_log:
 st.markdown("<br>", unsafe_allow_html=True)
 
 st.markdown(
+    '<div class="panel">',
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    '<div class="panel-header">'
+    '<div class="panel-title">SYSTEM METHODOLOGY</div>'
+    '<div class="panel-code">MODEL 3.0</div>'
+    '</div>',
+    unsafe_allow_html=True
+)
+
+st.markdown(
     """
-    <div class="panel">
-        <div class="panel-header">
-            <div class="panel-title">SYSTEM METHODOLOGY</div>
-            <div class="panel-code">MODEL 3.0</div>
-        </div>
+    <div style="
+        color:#8795a3;
+        font-size:0.78rem;
+        line-height:1.7;
+    ">
+        The system evaluates vessel sequences rather than isolated
+        priority scores. Each candidate sequence is assessed against
+        weather constraints, resource availability, waiting time,
+        passenger exposure, cargo criticality and estimated economic
+        consequences.
 
-        <div style="
-            color:#8795a3;
-            font-size:0.78rem;
-            line-height:1.7;
-        ">
-            The system evaluates vessel sequences rather than isolated
-            priority scores. Each candidate sequence is assessed against
-            weather constraints, resource availability, waiting time,
-            passenger exposure, cargo criticality and estimated economic
-            consequences.
+        <br><br>
 
-            <br><br>
-
-            The optimization layer identifies the sequence with the lowest
-            estimated aggregate operational cost. The human override layer
-            intentionally preserves operator authority when information
-            exists outside the model.
-        </div>
+        The optimization layer identifies the sequence with the lowest
+        estimated aggregate operational cost. The human override layer
+        intentionally preserves operator authority when information
+        exists outside the model.
     </div>
     """,
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    '</div>',
     unsafe_allow_html=True
 )
 
