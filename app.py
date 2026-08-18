@@ -1,10 +1,10 @@
 import streamlit as st
-from datetime import datetime, timedelta
-import math
+from datetime import datetime
 
 # ============================================================
-# MARITIME VESSEL SEQUENCING SYSTEM
-# Streamlit application
+# MARITIME FLOW
+# Vessel Sequencing & Port Decision Support System
+# FINAL VERSION
 # ============================================================
 
 st.set_page_config(
@@ -15,12 +15,13 @@ st.set_page_config(
 )
 
 # ============================================================
-# STYLE
+# DESIGN
 # ============================================================
 
 st.markdown(
     """
     <style>
+
     .stApp {
         background:
             linear-gradient(
@@ -48,7 +49,7 @@ st.markdown(
     .subtitle {
         font-size: 17px;
         color: #a9c7d5;
-        margin-bottom: 28px;
+        margin-bottom: 24px;
     }
 
     .wave {
@@ -72,20 +73,20 @@ st.markdown(
         border: 1px solid rgba(113, 193, 216, 0.20);
         border-radius: 16px;
         padding: 18px;
-        min-height: 110px;
+        min-height: 105px;
         box-shadow: 0 8px 30px rgba(0,0,0,0.15);
     }
 
     .metric-label {
         color: #8eafbd;
-        font-size: 13px;
+        font-size: 12px;
         text-transform: uppercase;
         letter-spacing: 1px;
     }
 
     .metric-value {
         color: #f3fbff;
-        font-size: 30px;
+        font-size: 29px;
         font-weight: 750;
         margin-top: 6px;
     }
@@ -93,9 +94,15 @@ st.markdown(
     .section-title {
         font-size: 25px;
         font-weight: 750;
-        margin-top: 30px;
+        margin-top: 32px;
         margin-bottom: 12px;
         color: #f4fbff;
+    }
+
+    .section-description {
+        color: #a9c7d5;
+        font-size: 14px;
+        margin-bottom: 18px;
     }
 
     .info-box {
@@ -125,6 +132,15 @@ st.markdown(
         color: #d9f7ef;
     }
 
+    .danger-box {
+        background: rgba(100, 35, 45, 0.35);
+        border-left: 4px solid #e66b78;
+        border-radius: 10px;
+        padding: 15px 18px;
+        margin: 10px 0;
+        color: #f4dadd;
+    }
+
     .vessel-card {
         background: rgba(6, 26, 41, 0.88);
         border: 1px solid rgba(105, 182, 205, 0.18);
@@ -145,6 +161,25 @@ st.markdown(
         margin-top: 4px;
     }
 
+    .sequence-number {
+        font-size: 28px;
+        font-weight: 800;
+        color: #4bc0d9;
+    }
+
+    .score {
+        font-size: 24px;
+        font-weight: 750;
+        color: #f4fbff;
+    }
+
+    .small-label {
+        color: #7f9eac;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+    }
+
     div[data-testid="stButton"] button {
         border-radius: 10px;
         font-weight: 650;
@@ -160,8 +195,9 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+
 # ============================================================
-# DATA
+# VESSEL DATABASE
 # ============================================================
 
 VESSELS = [
@@ -173,10 +209,10 @@ VESSELS = [
         "priority": 5,
         "eta": 35,
         "cargo": 1800,
-        "crane": "Heavy",
-        "weather_limit": 6.0,
         "resource": "Crane A",
-        "urgency": 5
+        "weather_limit": 6.0,
+        "urgency": 5,
+        "service_time": 55
     },
     {
         "name": "Northern Star",
@@ -186,10 +222,10 @@ VESSELS = [
         "priority": 4,
         "eta": 10,
         "cargo": 3200,
-        "crane": "Heavy",
-        "weather_limit": 5.0,
         "resource": "Crane B",
-        "urgency": 4
+        "weather_limit": 5.0,
+        "urgency": 4,
+        "service_time": 70
     },
     {
         "name": "Aurora",
@@ -199,10 +235,10 @@ VESSELS = [
         "priority": 5,
         "eta": 55,
         "cargo": 2400,
-        "crane": "Medium",
-        "weather_limit": 4.5,
         "resource": "Terminal 2",
-        "urgency": 5
+        "weather_limit": 4.5,
+        "urgency": 5,
+        "service_time": 65
     },
     {
         "name": "Ocean Pearl",
@@ -212,10 +248,10 @@ VESSELS = [
         "priority": 3,
         "eta": 20,
         "cargo": 1100,
-        "crane": "Medium",
-        "weather_limit": 7.0,
         "resource": "Crane A",
-        "urgency": 3
+        "weather_limit": 7.0,
+        "urgency": 3,
+        "service_time": 45
     },
     {
         "name": "Blue Meridian",
@@ -225,10 +261,10 @@ VESSELS = [
         "priority": 3,
         "eta": 5,
         "cargo": 850,
-        "crane": "Light",
-        "weather_limit": 8.0,
         "resource": "Ramp 1",
-        "urgency": 3
+        "weather_limit": 8.0,
+        "urgency": 3,
+        "service_time": 40
     },
     {
         "name": "Sea Falcon",
@@ -238,12 +274,13 @@ VESSELS = [
         "priority": 2,
         "eta": 15,
         "cargo": 900,
-        "crane": "Medium",
-        "weather_limit": 6.5,
         "resource": "Crane B",
-        "urgency": 2
+        "weather_limit": 6.5,
+        "urgency": 2,
+        "service_time": 40
     }
 ]
+
 
 # ============================================================
 # SESSION STATE
@@ -252,137 +289,301 @@ VESSELS = [
 if "vessels" not in st.session_state:
     st.session_state.vessels = [dict(v) for v in VESSELS]
 
-if "last_plan" not in st.session_state:
-    st.session_state.last_plan = None
-
-if "manual_order" not in st.session_state:
-    st.session_state.manual_order = []
+if "plan" not in st.session_state:
+    st.session_state.plan = None
 
 if "audit" not in st.session_state:
     st.session_state.audit = []
 
+if "manual_order" not in st.session_state:
+    st.session_state.manual_order = []
+
 
 # ============================================================
-# FUNCTIONS
+# CORE LOGIC
 # ============================================================
 
-def weather_status(vessel, wave_height):
+def weather_status(vessel, waves):
     limit = vessel["weather_limit"]
 
-    if wave_height > limit:
-        return "UNSAFE", 0
+    if waves > limit:
+        return "UNSAFE"
 
-    margin = limit - wave_height
+    if waves >= limit - 1:
+        return "RESTRICTED"
 
-    if margin < 1.0:
-        return "RESTRICTED", 0.5
-
-    return "SAFE", 1.0
+    return "SAFE"
 
 
-def calculate_score(vessel, wave_height, resource_pressure):
-    """
-    The system evaluates vessels using several operational factors.
+def resource_availability(resource, resource_state):
+    state = resource_state.get(resource, "Available")
 
-    Higher score = stronger candidate for earlier service.
+    if state == "Unavailable":
+        return "UNAVAILABLE"
 
-    Factors:
-    - priority
-    - urgency
-    - waiting time / ETA
-    - weather compatibility
-    - resource compatibility
-    - cargo volume
-    """
+    if state == "Limited":
+        return "LIMITED"
 
-    status, weather_factor = weather_status(vessel, wave_height)
+    return "AVAILABLE"
 
-    if status == "UNSAFE":
-        return -999, {
+
+def vessel_score(
+    vessel,
+    waves,
+    resource_state,
+    position,
+    current_time
+):
+    weather = weather_status(vessel, waves)
+    resource = resource_availability(
+        vessel["resource"],
+        resource_state
+    )
+
+    # Hard constraints
+    if weather == "UNSAFE":
+        return -1000, {
             "priority": 0,
             "urgency": 0,
-            "waiting": 0,
+            "arrival": 0,
             "weather": 0,
             "resource": 0,
-            "cargo": 0
+            "cargo": 0,
+            "waiting": 0,
+            "service": 0
         }
 
-    waiting_score = max(0, 30 - vessel["eta"]) / 6
-    priority_score = vessel["priority"] * 2.4
-    urgency_score = vessel["urgency"] * 2.0
-    weather_score = weather_factor * 8
+    if resource == "UNAVAILABLE":
+        return -900, {
+            "priority": 0,
+            "urgency": 0,
+            "arrival": 0,
+            "weather": 0,
+            "resource": 0,
+            "cargo": 0,
+            "waiting": 0,
+            "service": 0
+        }
 
-    if resource_pressure.get(vessel["resource"], 0) >= 2:
-        resource_score = -5
+    # --------------------------------------------------------
+    # 1. Operational priority
+    # --------------------------------------------------------
+
+    priority_score = vessel["priority"] * 4.0
+
+    # --------------------------------------------------------
+    # 2. Urgency
+    # --------------------------------------------------------
+
+    urgency_score = vessel["urgency"] * 3.2
+
+    # --------------------------------------------------------
+    # 3. Arrival / waiting
+    # --------------------------------------------------------
+
+    ready_time = vessel["eta"]
+
+    if current_time >= ready_time:
+        waiting = current_time - ready_time
+        arrival_score = min(10.0, waiting / 5.0)
+        waiting_score = min(10.0, waiting / 6.0)
     else:
-        resource_score = 5
+        arrival_score = -8.0
+        waiting_score = 0.0
 
-    cargo_score = min(vessel["cargo"] / 1000, 4)
+    # --------------------------------------------------------
+    # 4. Weather compatibility
+    # --------------------------------------------------------
+
+    if weather == "SAFE":
+        weather_score = 10.0
+    else:
+        weather_score = 3.0
+
+    # --------------------------------------------------------
+    # 5. Resource pressure
+    # --------------------------------------------------------
+
+    if resource == "AVAILABLE":
+        resource_score = 7.0
+    else:
+        resource_score = -3.0
+
+    # --------------------------------------------------------
+    # 6. Cargo importance
+    # --------------------------------------------------------
+
+    cargo_score = min(vessel["cargo"] / 500.0, 8.0)
+
+    # --------------------------------------------------------
+    # 7. Service efficiency
+    # --------------------------------------------------------
+
+    service_score = max(
+        0.0,
+        8.0 - vessel["service_time"] / 10.0
+    )
+
+    # --------------------------------------------------------
+    # Position penalty
+    # Prevents the algorithm from blindly repeating
+    # the same vessel characteristics.
+    # --------------------------------------------------------
+
+    position_penalty = position * 0.7
 
     total = (
         priority_score
         + urgency_score
-        + waiting_score
+        + arrival_score
         + weather_score
         + resource_score
         + cargo_score
+        + waiting_score
+        + service_score
+        - position_penalty
     )
 
-    return total, {
+    factors = {
         "priority": priority_score,
         "urgency": urgency_score,
-        "waiting": waiting_score,
+        "arrival": arrival_score,
         "weather": weather_score,
         "resource": resource_score,
-        "cargo": cargo_score
+        "cargo": cargo_score,
+        "waiting": waiting_score,
+        "service": service_score
     }
 
+    return total, factors
 
-def generate_plan(vessels, wave_height):
-    resource_pressure = {}
 
-    for vessel in vessels:
-        resource = vessel["resource"]
-        resource_pressure[resource] = resource_pressure.get(resource, 0) + 1
+def optimize_sequence(vessels, waves, resource_state):
+    remaining = [dict(v) for v in vessels]
 
-    results = []
+    sequence = []
+    current_time = 0
 
-    for vessel in vessels:
-        score, factors = calculate_score(
-            vessel,
-            wave_height,
-            resource_pressure
+    # Greedy sequence construction:
+    # At each step, evaluate every feasible remaining vessel
+    # against the current operational state.
+
+    while remaining:
+
+        candidates = []
+
+        for vessel in remaining:
+
+            score, factors = vessel_score(
+                vessel,
+                waves,
+                resource_state,
+                len(sequence),
+                current_time
+            )
+
+            candidates.append(
+                {
+                    "vessel": vessel,
+                    "score": score,
+                    "factors": factors,
+                    "weather": weather_status(vessel, waves),
+                    "resource": resource_availability(
+                        vessel["resource"],
+                        resource_state
+                    )
+                }
+            )
+
+        candidates.sort(
+            key=lambda x: x["score"],
+            reverse=True
         )
 
-        status, _ = weather_status(vessel, wave_height)
+        selected = candidates[0]
 
-        results.append({
-            "vessel": vessel,
-            "score": score,
-            "factors": factors,
-            "status": status
-        })
+        sequence.append(selected)
 
-    results.sort(
-        key=lambda x: (
-            x["score"],
-            x["vessel"]["priority"],
-            -x["vessel"]["eta"]
-        ),
-        reverse=True
+        selected_vessel = selected["vessel"]
+
+        # If vessel cannot currently operate,
+        # leave it at the end as a blocked item.
+        if selected["score"] < -500:
+            current_time += 5
+        else:
+            current_time = max(
+                current_time,
+                selected_vessel["eta"]
+            )
+
+            current_time += selected_vessel["service_time"]
+
+        remaining.remove(selected_vessel)
+
+    return sequence
+
+
+def calculate_total_waiting(sequence):
+    current_time = 0
+    total_waiting = 0
+
+    for item in sequence:
+
+        vessel = item["vessel"]
+
+        start = max(
+            current_time,
+            vessel["eta"]
+        )
+
+        waiting = max(
+            0,
+            start - vessel["eta"]
+        )
+
+        total_waiting += waiting
+
+        current_time = (
+            start +
+            vessel["service_time"]
+        )
+
+    return total_waiting
+
+
+def calculate_total_service(sequence):
+    return sum(
+        item["vessel"]["service_time"]
+        for item in sequence
+        if item["score"] > -500
     )
 
-    return results
+
+def count_safe(sequence):
+    return sum(
+        1
+        for item in sequence
+        if item["weather"] == "SAFE"
+        and item["score"] > -500
+    )
 
 
-def build_explanation(item, wave_height):
+def build_reason(item, waves):
+
     vessel = item["vessel"]
 
-    if item["status"] == "UNSAFE":
+    if item["score"] < -900:
+        if item["weather"] == "UNSAFE":
+            return (
+                f"{vessel['name']} is excluded from the active "
+                f"sequence because the current wave height of "
+                f"{waves:.1f} m exceeds its operational limit "
+                f"of {vessel['weather_limit']:.1f} m."
+            )
+
         return (
-            f"{vessel['name']} is temporarily excluded because "
-            f"the current wave height ({wave_height:.1f} m) exceeds "
-            f"the vessel's operational limit ({vessel['weather_limit']:.1f} m)."
+            f"{vessel['name']} cannot currently be processed "
+            f"because its assigned resource is unavailable."
         )
 
     reasons = []
@@ -394,10 +595,16 @@ def build_explanation(item, wave_height):
         reasons.append("high urgency")
 
     if vessel["eta"] <= 20:
-        reasons.append("short waiting time")
+        reasons.append("early arrival")
 
-    if item["status"] == "RESTRICTED":
+    if item["weather"] == "RESTRICTED":
         reasons.append("limited weather margin")
+
+    if item["resource"] == "LIMITED":
+        reasons.append("resource constraints considered")
+
+    if vessel["service_time"] <= 45:
+        reasons.append("short service time")
 
     if vessel["cargo"] >= 2000:
         reasons.append("large cargo operation")
@@ -406,37 +613,10 @@ def build_explanation(item, wave_height):
         reasons.append("balanced operational characteristics")
 
     return (
-        f"{vessel['name']} is ranked here because of "
-        + ", ".join(reasons)
-        + "."
+        f"{vessel['name']} is placed here because the system "
+        f"identified {', '.join(reasons)} as the strongest "
+        f"combination under the current conditions."
     )
-
-
-def calculate_waiting_time(plan):
-    current_time = 0
-    total_waiting = 0
-
-    for item in plan:
-        eta = item["vessel"]["eta"]
-
-        start = max(current_time, eta)
-        waiting = max(0, start - eta)
-
-        total_waiting += waiting
-
-        current_time = start + 30
-
-    return total_waiting
-
-
-def create_audit(plan, wave_height):
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    return {
-        "timestamp": timestamp,
-        "wave_height": wave_height,
-        "sequence": [x["vessel"]["name"] for x in plan]
-    }
 
 
 # ============================================================
@@ -446,34 +626,34 @@ def create_audit(plan, wave_height):
 with st.sidebar:
 
     st.markdown("## ⚓ Maritime Flow")
-    st.caption("Vessel Sequencing & Port Operations")
+    st.caption("Vessel Sequencing & Port Decision Support")
 
     st.divider()
 
-    st.markdown("### Operational conditions")
+    st.markdown("### Marine conditions")
 
     wave_height = st.slider(
         "Wave height (m)",
-        min_value=0.0,
-        max_value=8.0,
-        value=2.5,
-        step=0.1
+        0.0,
+        8.0,
+        2.5,
+        0.1
     )
 
     wind_speed = st.slider(
         "Wind speed (kn)",
-        min_value=0,
-        max_value=50,
-        value=16,
-        step=1
+        0,
+        50,
+        16,
+        1
     )
 
     visibility = st.slider(
         "Visibility (km)",
-        min_value=0.5,
-        max_value=20.0,
-        value=10.0,
-        step=0.5
+        0.5,
+        20.0,
+        10.0,
+        0.5
     )
 
     st.divider()
@@ -495,10 +675,28 @@ with st.sidebar:
         ["Available", "Limited", "Unavailable"]
     )
 
+    ramp_1 = st.selectbox(
+        "Ramp 1",
+        ["Available", "Limited", "Unavailable"]
+    )
+
+    resource_state = {
+        "Crane A": crane_a,
+        "Crane B": crane_b,
+        "Terminal 2": terminal_2,
+        "Ramp 1": ramp_1
+    }
+
     st.divider()
 
-    st.caption("System mode")
-    st.success("Operational")
+    st.markdown("### System status")
+
+    st.success("OPERATIONAL")
+
+    st.caption(
+        "Decision support mode · Human operator remains "
+        "the final decision-maker."
+    )
 
 
 # ============================================================
@@ -517,30 +715,38 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.markdown('<div class="wave"></div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="wave"></div>',
+    unsafe_allow_html=True
+)
 
 
 # ============================================================
-# TOP METRICS
+# LIVE PREVIEW
 # ============================================================
 
-plan_preview = generate_plan(
+preview = optimize_sequence(
     st.session_state.vessels,
-    wave_height
+    wave_height,
+    resource_state
 )
 
-unsafe_count = sum(
-    1 for x in plan_preview
-    if x["status"] == "UNSAFE"
-)
+blocked = [
+    item for item in preview
+    if item["score"] < -500
+]
 
-restricted_count = sum(
-    1 for x in plan_preview
-    if x["status"] == "RESTRICTED"
-)
+restricted = [
+    item for item in preview
+    if item["weather"] == "RESTRICTED"
+]
 
-total_wait = calculate_waiting_time(plan_preview)
+waiting = calculate_total_waiting(preview)
 
+
+# ============================================================
+# METRICS
+# ============================================================
 
 m1, m2, m3, m4 = st.columns(4)
 
@@ -548,8 +754,10 @@ with m1:
     st.markdown(
         f"""
         <div class="metric-card">
-            <div class="metric-label">Vessels</div>
-            <div class="metric-value">{len(st.session_state.vessels)}</div>
+            <div class="metric-label">Vessels monitored</div>
+            <div class="metric-value">
+                {len(st.session_state.vessels)}
+            </div>
         </div>
         """,
         unsafe_allow_html=True
@@ -560,7 +768,9 @@ with m2:
         f"""
         <div class="metric-card">
             <div class="metric-label">Weather blocked</div>
-            <div class="metric-value">{unsafe_count}</div>
+            <div class="metric-value">
+                {len(blocked)}
+            </div>
         </div>
         """,
         unsafe_allow_html=True
@@ -571,7 +781,9 @@ with m3:
         f"""
         <div class="metric-card">
             <div class="metric-label">Restricted</div>
-            <div class="metric-value">{restricted_count}</div>
+            <div class="metric-value">
+                {len(restricted)}
+            </div>
         </div>
         """,
         unsafe_allow_html=True
@@ -582,7 +794,9 @@ with m4:
         f"""
         <div class="metric-card">
             <div class="metric-label">Estimated waiting</div>
-            <div class="metric-value">{total_wait:.0f} min</div>
+            <div class="metric-value">
+                {waiting:.0f} min
+            </div>
         </div>
         """,
         unsafe_allow_html=True
@@ -590,7 +804,7 @@ with m4:
 
 
 # ============================================================
-# CURRENT CONDITIONS
+# CONDITIONS
 # ============================================================
 
 st.markdown(
@@ -601,32 +815,43 @@ st.markdown(
 c1, c2, c3 = st.columns(3)
 
 with c1:
+
     if wave_height <= 3:
         st.markdown(
-            '<div class="success-box">'
-            '<b>SEA STATE: NORMAL</b><br>'
-            'Current wave conditions are compatible with normal operations.'
-            '</div>',
-            unsafe_allow_html=True
-        )
-    elif wave_height <= 5:
-        st.markdown(
-            '<div class="warning-box">'
-            '<b>SEA STATE: CAUTION</b><br>'
-            'Some vessels may require operational restrictions.'
-            '</div>',
-            unsafe_allow_html=True
-        )
-    else:
-        st.markdown(
-            '<div class="warning-box">'
-            '<b>SEA STATE: SEVERE</b><br>'
-            'Several vessels may become unavailable for operations.'
-            '</div>',
+            """
+            <div class="success-box">
+            <b>SEA STATE · NORMAL</b><br>
+            Conditions are compatible with normal operations.
+            </div>
+            """,
             unsafe_allow_html=True
         )
 
+    elif wave_height <= 5:
+        st.markdown(
+            """
+            <div class="warning-box">
+            <b>SEA STATE · CAUTION</b><br>
+            Some vessels may require operational restrictions.
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    else:
+        st.markdown(
+            """
+            <div class="danger-box">
+            <b>SEA STATE · SEVERE</b><br>
+            Multiple vessels may become operationally unavailable.
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+
 with c2:
+
     st.markdown(
         f"""
         <div class="info-box">
@@ -637,7 +862,9 @@ with c2:
         unsafe_allow_html=True
     )
 
+
 with c3:
+
     st.markdown(
         f"""
         <div class="info-box">
@@ -650,63 +877,92 @@ with c3:
 
 
 # ============================================================
-# VESSEL TABLE
+# VESSEL MONITORING
 # ============================================================
 
 st.markdown(
-    '<div class="section-title">Vessel queue</div>',
+    '<div class="section-title">Vessel monitoring</div>',
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    '<div class="section-description">'
+    'Operational status of every vessel under the current conditions.'
+    '</div>',
     unsafe_allow_html=True
 )
 
 for index, vessel in enumerate(st.session_state.vessels):
 
-    status, _ = weather_status(vessel, wave_height)
+    weather = weather_status(
+        vessel,
+        wave_height
+    )
 
-    if status == "SAFE":
-        status_text = "🟢 SAFE"
-    elif status == "RESTRICTED":
-        status_text = "🟡 RESTRICTED"
+    resource = resource_availability(
+        vessel["resource"],
+        resource_state
+    )
+
+    if weather == "SAFE":
+        status = "🟢 SAFE"
+    elif weather == "RESTRICTED":
+        status = "🟡 RESTRICTED"
     else:
-        status_text = "🔴 UNSAFE"
+        status = "🔴 UNSAFE"
+
+    if resource == "UNAVAILABLE":
+        status = "🔴 RESOURCE BLOCKED"
 
     with st.container(border=True):
 
-        col1, col2, col3, col4, col5 = st.columns(
-            [2.2, 1.5, 1.3, 1.3, 1.4]
+        a, b, c, d, e = st.columns(
+            [2.4, 1.5, 1.2, 1.3, 1.5]
         )
 
-        with col1:
+        with a:
             st.markdown(
                 f"**{index + 1}. {vessel['name']}**"
             )
-            st.caption(vessel["type"])
+            st.caption(
+                f"{vessel['type']} · {vessel['resource']}"
+            )
 
-        with col2:
-            st.write(f"Draft: **{vessel['draft']:.1f} m**")
+        with b:
+            st.write(
+                f"Draft: **{vessel['draft']:.1f} m**"
+            )
 
-        with col3:
-            st.write(f"ETA: **{vessel['eta']} min**")
+        with c:
+            st.write(
+                f"ETA: **{vessel['eta']} min**"
+            )
 
-        with col4:
-            st.write(f"Priority: **{vessel['priority']}/5**")
+        with d:
+            st.write(
+                f"Priority: **{vessel['priority']}/5**"
+            )
 
-        with col5:
-            st.write(status_text)
+        with e:
+            st.write(status)
 
 
 # ============================================================
-# PLAN GENERATION
+# OPTIMIZATION
 # ============================================================
 
 st.markdown(
-    '<div class="section-title">Recommended sequence</div>',
+    '<div class="section-title">Optimization engine</div>',
     unsafe_allow_html=True
 )
 
-st.write(
-    "The system evaluates the vessels as a sequence rather than "
-    "using a single priority number. Weather, urgency, waiting time, "
-    "resource pressure and operational suitability are considered together."
+st.markdown(
+    '<div class="section-description">'
+    'The system evaluates the feasible sequence using operational '
+    'priority, urgency, arrival time, weather compatibility, '
+    'resource availability, cargo volume and service efficiency.'
+    '</div>',
+    unsafe_allow_html=True
 )
 
 if st.button(
@@ -715,55 +971,107 @@ if st.button(
     use_container_width=True
 ):
 
-    plan = generate_plan(
+    final_plan = optimize_sequence(
         st.session_state.vessels,
-        wave_height
+        wave_height,
+        resource_state
     )
 
-    st.session_state.last_plan = plan
+    st.session_state.plan = final_plan
 
     st.session_state.audit.append(
-        create_audit(plan, wave_height)
+        {
+            "timestamp": datetime.now().strftime(
+                "%Y-%m-%d %H:%M:%S"
+            ),
+            "type": "SYSTEM OPTIMIZATION",
+            "wave": wave_height,
+            "sequence": [
+                x["vessel"]["name"]
+                for x in final_plan
+            ]
+        }
     )
 
-    st.success("Operational sequence generated successfully.")
+    st.success(
+        "Optimal operational sequence generated."
+    )
 
 
 # ============================================================
-# SHOW PLAN
+# OPTIMIZED SEQUENCE
 # ============================================================
 
-if st.session_state.last_plan is not None:
+if st.session_state.plan is not None:
 
-    plan = st.session_state.last_plan
+    plan = st.session_state.plan
 
-    for position, item in enumerate(plan, start=1):
+    st.markdown(
+        '<div class="section-title">Recommended sequence</div>',
+        unsafe_allow_html=True
+    )
+
+    for position, item in enumerate(
+        plan,
+        start=1
+    ):
 
         vessel = item["vessel"]
 
-        if item["status"] == "UNSAFE":
-            border_class = "warning-box"
-        elif item["status"] == "RESTRICTED":
-            border_class = "warning-box"
+        if item["score"] < -500:
+
+            box = "danger-box"
+
+        elif item["weather"] == "RESTRICTED":
+
+            box = "warning-box"
+
         else:
-            border_class = "success-box"
+
+            box = "success-box"
 
         st.markdown(
             f"""
             <div class="vessel-card">
-                <div class="vessel-name">
-                    #{position} — {vessel['name']}
+
+                <div style="display:flex;
+                            justify-content:space-between;
+                            align-items:center;">
+
+                    <div>
+                        <div class="sequence-number">
+                            #{position}
+                        </div>
+
+                        <div class="vessel-name">
+                            {vessel['name']}
+                        </div>
+
+                        <div class="vessel-meta">
+                            {vessel['type']} ·
+                            ETA {vessel['eta']} min ·
+                            {vessel['resource']}
+                        </div>
+                    </div>
+
+                    <div style="text-align:right;">
+                        <div class="small-label">
+                            Decision score
+                        </div>
+                        <div class="score">
+                            {item['score']:.1f}
+                        </div>
+                    </div>
+
                 </div>
-                <div class="vessel-meta">
-                    {vessel['type']} · ETA {vessel['eta']} min ·
-                    Priority {vessel['priority']}/5 ·
-                    Resource: {vessel['resource']}
-                </div>
+
                 <br>
-                <div class="{border_class}">
+
+                <div class="{box}">
                     <b>System reasoning</b><br>
-                    {build_explanation(item, wave_height)}
+                    {build_reason(item, wave_height)}
                 </div>
+
             </div>
             """,
             unsafe_allow_html=True
@@ -771,56 +1079,92 @@ if st.session_state.last_plan is not None:
 
 
 # ============================================================
-# DECISION SUPPORT
+# WHY THIS SEQUENCE
 # ============================================================
 
-if st.session_state.last_plan is not None:
+if st.session_state.plan is not None:
+
+    plan = st.session_state.plan
+
+    operational = [
+        x for x in plan
+        if x["score"] > -500
+    ]
+
+    blocked_vessels = [
+        x for x in plan
+        if x["score"] <= -500
+    ]
+
+    total_wait = calculate_total_waiting(
+        plan
+    )
+
+    total_service = calculate_total_service(
+        plan
+    )
+
+    safe_count = count_safe(
+        plan
+    )
 
     st.markdown(
-        '<div class="section-title">Decision support</div>',
+        '<div class="section-title">Why this sequence?</div>',
         unsafe_allow_html=True
     )
 
-    plan = st.session_state.last_plan
+    q1, q2, q3, q4 = st.columns(4)
 
-    available = [
-        x for x in plan
-        if x["status"] != "UNSAFE"
-    ]
+    with q1:
+        st.metric(
+            "Feasible vessels",
+            len(operational)
+        )
 
-    blocked = [
-        x for x in plan
-        if x["status"] == "UNSAFE"
-    ]
+    with q2:
+        st.metric(
+            "Weather-safe",
+            safe_count
+        )
 
-    if blocked:
+    with q3:
+        st.metric(
+            "Expected waiting",
+            f"{total_wait:.0f} min"
+        )
+
+    with q4:
+        st.metric(
+            "Service time",
+            f"{total_service:.0f} min"
+        )
+
+    st.markdown(
+        """
+        <div class="info-box">
+        <b>Multi-factor decision model</b><br>
+        The sequence is not determined by a single priority value.
+        At every step, the system compares the remaining vessels
+        against the current operational state and selects the strongest
+        feasible candidate.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    if blocked_vessels:
+
         names = ", ".join(
             x["vessel"]["name"]
-            for x in blocked
+            for x in blocked_vessels
         )
 
         st.markdown(
             f"""
             <div class="warning-box">
-            <b>Weather restriction detected</b><br>
-            {names} cannot currently be placed into the active
-            operational sequence because the wave height exceeds
-            their operating limit.
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-    if available:
-
-        best = available[0]["vessel"]
-
-        st.markdown(
-            f"""
-            <div class="success-box">
-            <b>Recommended next vessel</b><br>
-            {best['name']} should be considered first among the
-            currently feasible vessels.
+            <b>Operational constraints</b><br>
+            {names} cannot currently enter the active sequence
+            because of weather or resource constraints.
             </div>
             """,
             unsafe_allow_html=True
@@ -828,7 +1172,7 @@ if st.session_state.last_plan is not None:
 
 
 # ============================================================
-# MANUAL OVERRIDE
+# OPERATOR OVERRIDE
 # ============================================================
 
 st.markdown(
@@ -836,30 +1180,34 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.write(
-    "The system provides a recommendation, but the final decision "
-    "remains with the port operator."
+st.markdown(
+    '<div class="section-description">'
+    'The algorithm supports the operator rather than replacing '
+    'operational authority.'
+    '</div>',
+    unsafe_allow_html=True
 )
 
 vessel_names = [
-    v["name"] for v in st.session_state.vessels
+    v["name"]
+    for v in st.session_state.vessels
 ]
 
 manual_order = st.multiselect(
-    "Select vessels for manual priority order",
+    "Choose vessels for manual priority",
     vessel_names,
     default=st.session_state.manual_order
 )
 
 if st.button(
-    "Apply operator sequence",
+    "Apply operator decision",
     use_container_width=True
 ):
 
-    if not manual_order:
+    if len(manual_order) == 0:
 
         st.warning(
-            "Select at least one vessel before applying a manual sequence."
+            "Select at least one vessel."
         )
 
     else:
@@ -871,14 +1219,14 @@ if st.button(
                 "timestamp": datetime.now().strftime(
                     "%Y-%m-%d %H:%M:%S"
                 ),
-                "wave_height": wave_height,
-                "sequence": manual_order,
-                "type": "MANUAL OVERRIDE"
+                "type": "MANUAL OPERATOR OVERRIDE",
+                "wave": wave_height,
+                "sequence": manual_order
             }
         )
 
         st.success(
-            "Manual operator sequence recorded."
+            "Operator decision recorded in the audit trail."
         )
 
 
@@ -899,12 +1247,9 @@ if not st.session_state.audit:
 
 else:
 
-    for event in reversed(st.session_state.audit):
-
-        event_type = event.get(
-            "type",
-            "SYSTEM RECOMMENDATION"
-        )
+    for event in reversed(
+        st.session_state.audit
+    ):
 
         sequence = " → ".join(
             event["sequence"]
@@ -913,9 +1258,9 @@ else:
         st.markdown(
             f"""
             <div class="info-box">
-            <b>{event_type}</b><br>
+            <b>{event['type']}</b><br>
             {event['timestamp']}<br>
-            Wave height: {event['wave_height']:.1f} m<br>
+            Wave height: {event['wave']:.1f} m<br>
             Sequence: {sequence}
             </div>
             """,
@@ -924,55 +1269,93 @@ else:
 
 
 # ============================================================
-# EXPORT
+# REPORT
 # ============================================================
 
-st.markdown(
-    '<div class="section-title">Export decision</div>',
-    unsafe_allow_html=True
-)
+if st.session_state.plan is not None:
 
-if st.session_state.last_plan is not None:
+    st.markdown(
+        '<div class="section-title">Operational report</div>',
+        unsafe_allow_html=True
+    )
 
-    lines = [
-        "MARITIME FLOW — OPERATIONAL SEQUENCE",
+    plan = st.session_state.plan
+
+    report_lines = [
+        "MARITIME FLOW",
+        "VESSEL SEQUENCING & PORT DECISION SUPPORT SYSTEM",
         "",
+        "----------------------------------------",
         f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         f"Wave height: {wave_height:.1f} m",
         f"Wind speed: {wind_speed} kn",
         f"Visibility: {visibility:.1f} km",
+        "----------------------------------------",
         "",
-        "RECOMMENDED SEQUENCE:",
+        "RECOMMENDED OPERATIONAL SEQUENCE",
+        ""
     ]
 
     for i, item in enumerate(
-        st.session_state.last_plan,
+        plan,
         start=1
     ):
 
         vessel = item["vessel"]
 
-        lines.append(
-            f"{i}. {vessel['name']} | "
-            f"{vessel['type']} | "
-            f"Status: {item['status']} | "
-            f"Score: {item['score']:.2f}"
+        report_lines.append(
+            f"{i}. {vessel['name']}"
         )
 
-    lines.extend(
+        report_lines.append(
+            f"   Type: {vessel['type']}"
+        )
+
+        report_lines.append(
+            f"   ETA: {vessel['eta']} min"
+        )
+
+        report_lines.append(
+            f"   Priority: {vessel['priority']}/5"
+        )
+
+        report_lines.append(
+            f"   Resource: {vessel['resource']}"
+        )
+
+        report_lines.append(
+            f"   Weather status: {item['weather']}"
+        )
+
+        report_lines.append(
+            f"   Decision score: {item['score']:.2f}"
+        )
+
+        report_lines.append("")
+
+    report_lines.extend(
         [
+            "----------------------------------------",
+            "DECISION PRINCIPLE",
             "",
-            "This recommendation is decision support.",
-            "Final operational authority remains with the port operator."
+            "The system evaluates vessel sequences using",
+            "multiple operational factors rather than a",
+            "single priority score.",
+            "",
+            "Final operational authority remains with",
+            "the human port operator.",
+            "----------------------------------------"
         ]
     )
 
-    report = "\n".join(lines)
+    report = "\n".join(
+        report_lines
+    )
 
     st.download_button(
-        label="Download operational report",
+        "Download operational report",
         data=report,
-        file_name="maritime_flow_report.txt",
+        file_name="maritime_flow_operational_report.txt",
         mime="text/plain",
         use_container_width=True
     )
@@ -989,9 +1372,11 @@ st.markdown(
         text-align:center;
         color:#7897a5;
         font-size:12px;
-        padding:25px 0 10px 0;
+        padding:28px 0 12px 0;
     ">
         MARITIME FLOW · Vessel Sequencing Decision Support System
+        <br>
+        Operational prototype · Human-in-the-loop decision support
     </div>
     """,
     unsafe_allow_html=True
